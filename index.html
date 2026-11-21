@@ -1,85 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gabi sa Mendez | Survival Horror</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gabi sa Mendez</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="game-root">
-  <section id="menu-screen" class="screen active">
-    <div class="menu-panel">
-      <p class="eyebrow">A FILIPINO FOLKLORE SURVIVAL GAME</p>
-      <h1>GABI SA <span>MENDEZ</span></h1>
-      <p class="tagline">When the sun goes down, the town wakes up.</p>
-      <div class="menu-buttons">
-        <button id="single-btn" class="primary">SINGLE PLAYER</button>
-        <button id="coop-btn">TWO PLAYER CO-OP</button>
-        <button id="instructions-btn">INSTRUCTIONS</button>
-        <button id="settings-btn">SETTINGS</button>
-      </div>
-      <p class="small-note">Survive five nights. Eliminate the creatures. Protect each other.</p>
-    </div>
-  </section>
 
-  <section id="instructions-screen" class="screen">
-    <div class="dialog wide">
-      <h2>HOW TO SURVIVE</h2>
-      <div class="instruction-grid">
-        <section><h3>Player 1 — Co-op</h3><p><b>W A S D</b> Move</p><p><b>SPACE</b> Jump</p><p><b>U</b> Shoot / attack</p><p><b>I</b> Aim / melee</p><p><b>R</b> Reload</p><p><b>C</b> Crouch</p><p><b>1–5</b> Select weapon</p></section>
-        <section><h3>Player 2</h3><p><b>ARROW KEYS</b> Move</p><p><b>NUMPAD 0</b> Jump</p><p><b>NUMPAD DELETE</b> Shoot / attack</p><p><b>NUMPAD ENTER</b> Aim / melee</p><p><b>R</b> Reload</p><p><b>C</b> Crouch</p></section>
-        <section><h3>Single Player</h3><p><b>W A S D</b> Move</p><p><b>SPACE</b> Jump</p><p><b>LEFT CLICK</b> Shoot / attack</p><p><b>RIGHT CLICK</b> Aim / melee</p><p><b>R</b> Reload</p><p><b>C</b> Crouch</p><p><b>H</b> Use healing item</p><p><b>1–5</b> Select weapon</p></section>
-        <section><h3>Survival Rules</h3><p>Walk near items to collect them. Eliminate the required number of enemies to clear a night.</p><p>In co-op, hold <b>E</b> near a downed teammate for five seconds.</p><p>Nights 2–5 have one shared revive token. Single-player uses that token automatically.</p></section>
-      </div>
-      <button class="primary back-menu">BACK</button>
-    </div>
-  </section>
+    <div id="game-container">
 
-  <section id="settings-screen" class="screen">
-    <div class="dialog">
-      <h2>SETTINGS</h2>
-      <label>Sound Effects Volume<input id="sfx-volume" type="range" min="0" max="100" value="60"></label>
-      <label>Music Volume<input id="music-volume" type="range" min="0" max="100" value="35"></label>
-      <p class="small-note">Volume settings are saved in this browser. Audio playback is not included in this prototype.</p>
-      <button class="primary back-menu">BACK</button>
-    </div>
-  </section>
+        <!-- MAIN MENU -->
+        <section id="menu-screen" class="screen active">
+            <div class="menu-box">
+                <p class="subtitle">A PHILIPPINE FOLKLORE SURVIVAL GAME</p>
+                <h1>GABI SA <span>MENDEZ</span></h1>
+                <p class="description">
+                    Survive five nights in a village haunted by creatures of Philippine folklore.
+                </p>
 
-  <main id="game-screen" class="hidden">
-    <div id="hud-top">
-      <div class="hud-card"><span class="hud-label">NIGHT</span><strong id="night-label">1 / 5</strong></div>
-      <div class="hud-card objective"><span class="hud-label">OBJECTIVE</span><strong><span id="kills-label">0</span> / <span id="target-label">50</span> ELIMINATED</strong></div>
-      <div class="hud-card"><span class="hud-label">SCORE</span><strong id="score-label">0</strong></div>
-      <div class="hud-card"><span class="hud-label">REVIVES</span><strong id="revive-label">0</strong></div>
-    </div>
-    <div id="player-hud" class="player-hud">
-      <div class="player-card" id="p1-card">
-        <div class="player-heading"><b>PLAYER 1</b><span id="p1-status">ALIVE</span></div>
-        <div class="bar-line"><span>HP</span><div class="bar"><i id="p1-health"></i></div><strong id="p1-health-text">100</strong></div>
-        <div class="bar-line"><span>STA</span><div class="bar stamina"><i id="p1-stamina"></i></div><strong id="p1-stamina-text">100</strong></div>
-        <div class="player-meta"><span id="p1-weapon">Balisong</span><span id="p1-ammo">MELEE</span></div>
-      </div>
-      <div class="player-card" id="p2-card">
-        <div class="player-heading"><b>PLAYER 2</b><span id="p2-status">NOT PLAYING</span></div>
-        <div class="bar-line"><span>HP</span><div class="bar"><i id="p2-health"></i></div><strong id="p2-health-text">—</strong></div>
-        <div class="bar-line"><span>STA</span><div class="bar stamina"><i id="p2-stamina"></i></div><strong id="p2-stamina-text">—</strong></div>
-        <div class="player-meta"><span id="p2-weapon">—</span><span id="p2-ammo">—</span></div>
-      </div>
-    </div>
-    <div id="center-message"></div><div id="crosshair">+</div>
-    <div id="inventory-panel"><div class="inventory-title">QUICK SLOTS</div><div id="quick-slots" class="slots"></div><div class="inventory-title backpack-title">BACKPACK <span id="backpack-count">0/10</span></div><div id="backpack-slots" class="slots backpack-slots"></div></div>
-    <div id="enemy-counter">ASWANG NEARBY: <b id="enemy-count">0</b></div>
-    <div id="help-hint">Move near items to pick them up · Hold E near a downed teammate to revive</div>
-    <button id="pause-btn" type="button">Ⅱ</button>
-  </main>
+                <button id="start-btn" class="main-button">START GAME</button>
+                <button id="menu-btn">SETTINGS & CONTROLS</button>
+                <button id="exit-btn">EXIT GAME</button> 
+            </div>
+        </section>
 
-  <section id="pause-screen" class="screen overlay"><div class="dialog"><h2>PAUSED</h2><button id="resume-btn" class="primary">RESUME</button><button id="pause-menu-btn">MAIN MENU</button></div></section>
-  <section id="victory-screen" class="screen overlay"><div class="dialog"><p class="eyebrow">NIGHT CLEARED</p><h2 id="victory-title">YOU SURVIVED</h2><p id="victory-description">The town is still standing. For now.</p><button id="continue-btn" class="primary">CONTINUE</button><button class="to-menu">EXIT TO MAIN MENU</button></div></section>
-  <section id="died-screen" class="screen overlay"><div class="dialog"><p class="eyebrow">THE NIGHT CLAIMED YOU</p><h2>YOU DIED</h2><p id="died-description">Your survival attempt has ended.</p><button id="retry-btn" class="primary">RETRY NIGHT</button><button class="to-menu">EXIT TO MAIN MENU</button></div></section>
-  <div id="loading-note"><h2>LOADING 3D ENVIRONMENT...</h2><p>Preparing the town of Mendez...</p></div>
-  <div id="toast" role="status"></div>
-</div>
-<script type="module" src="./game.js"></script>
+        <!-- SETTINGS -->
+        <section id="settings-screen" class="screen">
+            <div class="panel">
+                <h2>SETTINGS & CONTROLS</h2>
+
+                <div class="settings-columns">
+                    <div>
+                        <h3>Single Player</h3>
+                        <p>A / D - Move left and right</p>
+                        <p>W - Jump</p>
+                        <p>S - Move down</p>
+                        <p>T - Shoot</p>
+                        <p>Y - Melee attack</p>
+                        <p>R - Reload</p>
+                        <p>H - Use healing item</p>
+                        <p>1–5 - Select inventory slot</p>
+                    </div>
+
+                    <div>
+                        <h3>Two Player Co-op</h3>
+                        <p><b>Player 1</b></p>
+                        <p>A / D - Move</p>
+                        <p>W - Jump</p>
+                        <p>S - Move down</p>
+                        <p>T - Shoot</p>
+                        <p>Y - Melee</p>
+
+                        <p><b>Player 2</b></p>
+                        <p>Left / Right - Move</p>
+                        <p>Up - Jump</p>
+                        <p>Down - Move down</p>
+                        <p>Numpad 1 - Shoot</p>
+                        <p>Numpad 2 - Melee</p>
+
+                        <p>E - Hold to revive teammate</p>
+                        <p>R - Reload | H - Heal</p>
+                    </div>
+                </div>
+
+                <h3>Audio Settings</h3>
+                <label>
+                    Sound Effects
+                    <input type="range" id="sfx-volume" min="0" max="100" value="60">
+                </label>
+
+                <label>
+                    Music
+                    <input type="range" id="music-volume" min="0" max="100" value="35">
+                </label>
+
+                <button class="main-button back-menu">BACK TO MENU</button>
+            </div>
+        </section>
+
+        <!-- PLAYER SELECTION -->
+        <section id="player-screen" class="screen">
+            <div class="panel">
+                <h2>CHOOSE YOUR GAME MODE</h2>
+                <p>How many players will defend Mendez?</p>
+
+                <button id="solo-btn" class="main-button">SINGLE PLAYER</button>
+                <button id="coop-btn" class="main-button">TWO PLAYER CO-OP</button>
+                <button class="back-menu">BACK</button>
+            </div>
+        </section>
+
+        <!-- GAME -->
+        <main id="game-screen" class="hidden">
+
+            <header id="top-hud">
+                <div class="hud-box">
+                    <small>NIGHT</small>
+                    <strong id="night-text">1 / 5</strong>
+                </div>
+
+                <div class="hud-box">
+                    <small>OBJECTIVE</small>
+                    <strong><span id="kill-count">0</span> / <span id="kill-target">50</span></strong>
+                </div>
+
+                <div class="hud-box">
+                    <small>REMAINING ENEMIES</small>
+                    <strong id="enemy-count">0</strong>
+                </div>
+
+                <div class="hud-box">
+                    <small>REVIVE TOKEN</small>
+                    <strong id="revive-count">0</strong>
+                </div>
+
+                <button id="pause-btn">PAUSE</button>
+            </header>
+
+            <canvas id="game-canvas"></canvas>
+
+            <div id="player-hud">
+
+                <div class="player-status" id="player-one-hud">
+                    <h3>PLAYER 1</h3>
+                    <div class="status-row">
+                        <span>HEALTH</span>
+                        <div class="bar"><div id="p1-health-bar" class="health-fill"></div></div>
+                        <b id="p1-health-text">100</b>
+                    </div>
+                    <div class="status-row">
+                        <span>ENERGY</span>
+                        <div class="bar"><div id="p1-energy-bar" class="energy-fill"></div></div>
+                        <b id="p1-energy-text">200</b>
+                    </div>
+                    <p id="p1-weapon">Balisong</p>
+                    <p id="p1-status">ALIVE</p>
+                    <div class="inventory-slots" id="p1-slots"></div>
+                    <div class="backpack-label">BACKPACK <span id="p1-bag-count">0 / 10</span></div>
+                    <div class="backpack-slots" id="p1-backpack"></div>
+                </div>
+
+                <div class="player-status" id="player-two-hud">
+                    <h3>PLAYER 2</h3>
+                    <div class="status-row">
+                        <span>HEALTH</span>
+                        <div class="bar"><div id="p2-health-bar" class="health-fill"></div></div>
+                        <b id="p2-health-text">100</b>
+                    </div>
+                    <div class="status-row">
+                        <span>ENERGY</span>
+                        <div class="bar"><div id="p2-energy-bar" class="energy-fill"></div></div>
+                        <b id="p2-energy-text">200</b>
+                    </div>
+                    <p id="p2-weapon">Balisong</p>
+                    <p id="p2-status">NOT PLAYING</p>
+                    <div class="inventory-slots" id="p2-slots"></div>
+                    <div class="backpack-label">BACKPACK <span id="p2-bag-count">0 / 10</span></div>
+                    <div class="backpack-slots" id="p2-backpack"></div>
+                </div>
+
+            </div>
+
+            <div id="game-message"></div>
+            <div id="notification"></div>
+        </main>
+
+        <!-- PAUSE -->
+        <section id="pause-screen" class="screen">
+            <div class="panel">
+                <h2>GAME PAUSED</h2>
+                <button id="resume-btn" class="main-button">RESUME</button>
+                <button id="pause-menu-btn">BACK TO MAIN MENU</button>
+            </div>
+        </section>
+
+        <!-- REST PERIOD -->
+        <section id="rest-screen" class="screen">
+            <div class="panel">
+                <p class="subtitle">NIGHT CLEARED</p>
+                <h2>PREPARE FOR THE NEXT NIGHT</h2>
+                <p>Use this time to organize your items and prepare for the next wave.</p>
+                <h1 id="rest-timer">30</h1>
+                <p>SECONDS REMAINING</p>
+                <button id="rest-continue-btn" class="main-button">START NEXT NIGHT NOW</button>
+            </div>
+        </section>
+
+        <!-- WIN -->
+        <section id="win-screen" class="screen">
+            <div class="panel results-panel">
+                <p class="subtitle">THE SUN HAS FINALLY RISEN</p>
+                <h1>MENDEZ <span>SURVIVED!</span></h1>
+                <h2>FINAL SURVIVAL STATISTICS</h2>
+
+                <div id="final-stats"></div>
+
+                <button id="win-menu-btn" class="main-button">BACK TO MENU</button>
+            </div>
+        </section>
+
+        <!-- DEATH -->
+        <section id="death-screen" class="screen">
+            <div class="panel">
+                <p class="subtitle">THE NIGHT HAS CLAIMED YOU</p>
+                <h1>YOU <span>DIED</span></h1>
+                <p id="death-description">Your survival attempt has ended.</p>
+
+                <button id="retry-btn" class="main-button">RETRY NIGHT</button>
+                <button id="death-menu-btn">BACK TO MENU</button>
+            </div>
+        </section>
+
+        <!-- LOADING / ERROR -->
+        <div id="loading-screen" class="hidden">
+            <h2>LOADING GABI SA MENDEZ...</h2>
+        </div>
+
+    </div>
+
+    <script src="game.js"></script>
 </body>
 </html>

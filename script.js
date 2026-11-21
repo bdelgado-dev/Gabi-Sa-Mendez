@@ -1,1072 +1,2254 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+// ============================================
+// GABI SA MENDEZ
+// 2D PHILIPPINE FOLKLORE SURVIVAL GAME
+// ============================================
 
-const $ = id => document.getElementById(id);
-const requiredIds = ['menu-screen','instructions-screen','settings-screen','game-screen','pause-screen','victory-screen','died-screen','single-btn','coop-btn','instructions-btn','settings-btn','pause-btn','resume-btn','pause-menu-btn','retry-btn','continue-btn','toast'];
-for (const id of requiredIds) if (!$(id)) throw new Error(`Missing HTML element: #${id}`);
+const canvas = document.getElementById("game-canvas");
+const ctx = canvas.getContext("2d");
 
-const screenIds = ['menu-screen','instructions-screen','settings-screen','pause-screen','victory-screen','died-screen'];
-const showScreen = id => { screenIds.forEach(s => $(s).classList.toggle('active', s === id)); };
-const targets = [50,75,100,150,300];
+// ============================================
+// GAME SETTINGS
+// ============================================
 
-const enemyData = {
-  tiyanak:{name:'Tiyanak',hp:10,damage:1,speed:3.2,color:0x9d3434,score:10,size:.65},
-  tiktik:{name:'Tik-Tik',hp:20,damage:5,speed:2.7,color:0x6b426e,score:20,size:.85},
-  kapre:{name:'Kapre',hp:100,damage:25,speed:1.15,color:0x4a3529,score:100,size:1.55},
-  sigbin:{name:'Sigbin',hp:50,damage:15,speed:3.8,color:0x6d7650,score:50,size:.9},
-  manananggal:{name:'Manananggal',hp:70,damage:30,speed:2.3,color:0x8a273e,score:70,size:1.15},
-  bampira:{name:'Bampira',hp:110,damage:50,speed:2,color:0x292c38,score:120,size:1.2}
+const nightTargets = [50, 75, 100, 150, 300];
+
+const enemyTypes = {
+    tiyanak: {
+        name: "Tiyanak",
+        health: 10,
+        damage: 1,
+        speed: 65,
+        color: "#b34b43",
+        size: 18
+    },
+
+    tiktik: {
+        name: "Tik-Tik",
+        health: 20,
+        damage: 5,
+        speed: 55,
+        color: "#875b9a",
+        size: 22
+    },
+
+    kapre: {
+        name: "Kapre",
+        health: 100,
+        damage: 25,
+        speed: 28,
+        color: "#574333",
+        size: 32
+    },
+
+    sigbin: {
+        name: "Sigbin",
+        health: 50,
+        damage: 15,
+        speed: 90,
+        color: "#6f8652",
+        size: 23
+    },
+
+    manananggal: {
+        name: "Manananggal",
+        health: 70,
+        damage: 30,
+        speed: 65,
+        color: "#873c55",
+        size: 27
+    },
+
+    bampira: {
+        name: "Bampira",
+        health: 110,
+        damage: 50,
+        speed: 60,
+        color: "#333746",
+        size: 29
+    }
 };
 
-const nightPools = [
-  ['tiyanak','tiktik'],
-  ['tiyanak','tiktik','kapre'],
-  ['tiyanak','tiktik','kapre','sigbin'],
-  ['tiyanak','tiktik','kapre','sigbin','manananggal'],
-  ['tiyanak','tiktik','kapre','sigbin','manananggal','bampira']
+const nightEnemies = [
+    ["tiyanak", "tiktik"],
+    ["tiyanak", "tiktik", "kapre"],
+    ["tiyanak", "tiktik", "kapre", "sigbin"],
+    ["tiyanak", "tiktik", "kapre", "sigbin", "manananggal"],
+    ["tiyanak", "tiktik", "kapre", "sigbin", "manananggal", "bampira"]
 ];
 
-const items = {
-  balisong:{name:'Balisong',type:'melee',damage:10,icon:'🔪'},
-  palakol:{name:'Palakol',type:'melee',damage:25,icon:'🪓'},
-  itak:{name:'Itak',type:'melee',damage:15,icon:'🗡️'},
-  kawali:{name:'Kawali',type:'melee',damage:12,icon:'🍳'},
-  revolver:{name:'Revolver',type:'gun',damage:25,mag:6,icon:'🔫'},
-  ak47:{name:'AK-47',type:'gun',damage:50,mag:50,icon:'🎯'},
-  ammo:{name:'Ammo',type:'ammo',icon:'📦'},
-  bandage:{name:'Bandage',type:'heal',heal:20,icon:'🩹'},
-  medkit:{name:'Medkit',type:'heal',heal:60,icon:'🧰'},
-  drink:{name:'Sports Drink',type:'stamina',icon:'🥤'},
-  armor:{name:'Body Armor',type:'armor',icon:'🛡️'}
+const itemTypes = {
+    balisong: {
+        name: "Balisong",
+        type: "melee",
+        damage: 10,
+        icon: "🔪"
+    },
+
+    palakol: {
+        name: "Palakol",
+        type: "melee",
+        damage: 25,
+        icon: "🪓"
+    },
+
+    itak: {
+        name: "Itak",
+        type: "melee",
+        damage: 15,
+        icon: "🗡️"
+    },
+
+    kawali: {
+        name: "Kawali",
+        type: "melee",
+        damage: 12,
+        icon: "🍳"
+    },
+
+    revolver: {
+        name: "Revolver",
+        type: "gun",
+        damage: 25,
+        magazine: 6,
+        reloadTime: 2.5,
+        icon: "🔫"
+    },
+
+    ak47: {
+        name: "AK-47",
+        type: "gun",
+        damage: 50,
+        magazine: 50,
+        reloadTime: 2,
+        icon: "🎯"
+    },
+
+    bandage: {
+        name: "Bandage",
+        type: "heal",
+        amount: 20,
+        icon: "🩹"
+    },
+
+    medkit: {
+        name: "Medkit",
+        type: "heal",
+        amount: 60,
+        icon: "🧰"
+    },
+
+    drink: {
+        name: "Sports Drink",
+        type: "energy",
+        amount: 80,
+        icon: "🥤"
+    },
+
+    armor: {
+        name: "Armor",
+        type: "armor",
+        amount: 20,
+        icon: "🛡️"
+    },
+
+    ammo: {
+        name: "Bullets",
+        type: "ammo",
+        amount: 30,
+        icon: "📦"
+    }
 };
 
-let scene,camera,renderer,clock;
-let players=[],enemies=[],pickups=[],bullets=[];
-let running=false,paused=false,coop=false,night=1,kills=0,score=0,spawnClock=0,reviveTokens=0,reviveProgress=0,levelComplete=false;
-let keys={},aiming=false,toastTimeout=null;
-let highScore=Number(safeGet('gsm-highscore',0));
+// ============================================
+// GAME VARIABLES
+// ============================================
 
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let gameMode = "solo";
+let currentNight = 1;
+let totalKills = 0;
+let reviveTokens = 0;
 
-function safeGet(k,fallback){
-  try{return localStorage.getItem(k) ?? fallback;}
-  catch{return fallback;}
+let players = [];
+let enemies = [];
+let bullets = [];
+let pickups = [];
+
+let keys = {};
+
+let gameRunning = false;
+let gamePaused = false;
+let gameOver = false;
+
+let spawnTimer = 0;
+let spawnInterval = 1.5;
+let restTimer = 30;
+
+let lastTime = 0;
+let notificationTimer = null;
+let restInterval = null;
+let reloadTimers = [];
+
+let mapWidth = 1200;
+let mapHeight = 700;
+
+let buildings = [];
+let trees = [];
+let obstacles = [];
+
+// ============================================
+// PLAYER CREATION
+// ============================================
+
+function createPlayer(id, x, color) {
+
+    return {
+        id: id,
+
+        x: x,
+        y: mapHeight - 125,
+
+        width: 30,
+        height: 38,
+
+        color: color,
+
+        health: 100,
+        maxHealth: 100,
+
+        energy: 200,
+        maxEnergy: 200,
+
+        armor: 0,
+
+        speed: 210,
+
+        velocityY: 0,
+        jumping: false,
+
+        facing: -1,
+
+        downed: false,
+
+        weapon: "balisong",
+
+        magazine: {
+            revolver: 6,
+            ak47: 50
+        },
+
+        reserveAmmo: 120,
+
+        inventory: [
+            "balisong",
+            "revolver",
+            "bandage",
+            "bandage",
+            "medkit"
+        ],
+
+        backpack: [
+            "bandage",
+            "bandage",
+            "bandage",
+            "drink"
+        ],
+
+        selectedSlot: 0,
+
+        attackCooldown: 0,
+        meleeCooldown: 0,
+
+        reloadTime: 0,
+        reloading: false,
+
+        reviveCount: 0,
+
+        stats: {
+            shotsFired: 0,
+            meleeKills: 0,
+            gunKills: 0,
+            totalKills: 0,
+            heals: 0,
+            revives: 0
+        }
+    };
 }
 
-function safeSet(k,v){
-  try{localStorage.setItem(k,String(v));}
-  catch{}
-}
+// ============================================
+// MAP CREATION
+// ============================================
 
-function init3D(){
-  scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x101a1c);
-  scene.fog=new THREE.Fog(0x101a1c,28,78);
+function createMap() {
 
-  camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,150);
-  camera.position.set(0,25,29);
+    buildings = [];
+    trees = [];
+    obstacles = [];
 
-  renderer=new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setSize(innerWidth,innerHeight);
-  renderer.shadowMap.enabled=true;
-  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    const housePositions = [
+        [120, 120], [330, 180], [550, 100],
+        [850, 140], [1020, 280], [170, 360],
+        [440, 330], [750, 300], [970, 460]
+    ];
 
-  $('game-root').prepend(renderer.domElement);
+    housePositions.forEach((position, index) => {
 
-  scene.add(new THREE.HemisphereLight(0x9ab4c2,0x1b211c,1.6));
+        buildings.push({
+            x: position[0],
+            y: position[1],
+            width: 95 + (index % 3) * 15,
+            height: 65 + (index % 2) * 15,
+            color: ["#77644b", "#66513e", "#82705b"][index % 3]
+        });
 
-  const moon=new THREE.DirectionalLight(0xb8c9d8,2);
-  moon.position.set(-15,28,12);
-  moon.castShadow=true;
-  scene.add(moon);
+    });
 
-  const ground=new THREE.Mesh(
-    new THREE.PlaneGeometry(90,90),
-    new THREE.MeshStandardMaterial({color:0x303b32,roughness:1})
-  );
-  ground.rotation.x=-Math.PI/2;
-  ground.receiveShadow=true;
-  scene.add(ground);
+    for (let i = 0; i < 32; i++) {
 
-  const road=new THREE.Mesh(
-    new THREE.PlaneGeometry(9,90),
-    new THREE.MeshStandardMaterial({color:0x343737})
-  );
-  road.rotation.x=-Math.PI/2;
-  road.position.y=.02;
-  scene.add(road);
+        trees.push({
+            x: 30 + Math.random() * (mapWidth - 60),
+            y: 50 + Math.random() * 430,
+            size: 13 + Math.random() * 12
+        });
 
-  for(let z=-40;z<=40;z+=4){
-    const dash=new THREE.Mesh(
-      new THREE.BoxGeometry(.12,.025,1.5),
-      new THREE.MeshBasicMaterial({color:0xb9aa76})
-    );
-    dash.position.set(0,.04,z);
-    scene.add(dash);
-  }
-
-  for(let i=0;i<18;i++){
-    const side=i%2===0?-1:1;
-    const z=-38+Math.floor(i/2)*9+Math.random()*2;
-    const w=4+Math.random()*2;
-    const h=2.5+Math.random()*1.2;
-    const g=new THREE.Group();
-
-    const body=new THREE.Mesh(
-      new THREE.BoxGeometry(w,h,4),
-      new THREE.MeshStandardMaterial({
-        color:[0x756451,0x8a7862,0x59635a,0x786f60][i%4]
-      })
-    );
-
-    body.position.y=h/2;
-    body.castShadow=true;
-    g.add(body);
-
-    const roof=new THREE.Mesh(
-      new THREE.ConeGeometry(w*.78,1.6,4),
-      new THREE.MeshStandardMaterial({color:0x493a32})
-    );
-
-    roof.position.y=h+.75;
-    roof.rotation.y=Math.PI/4;
-    g.add(roof);
-    g.position.set(side*(9+Math.random()*4),0,z);
-    scene.add(g);
-  }
-
-  for(let i=0;i<34;i++){
-    const x=(Math.random()-.5)*70;
-    const z=(Math.random()-.5)*80;
-
-    if(Math.abs(x)<7)continue;
-
-    const g=new THREE.Group();
-
-    const trunk=new THREE.Mesh(
-      new THREE.CylinderGeometry(.18,.28,2,6),
-      new THREE.MeshStandardMaterial({color:0x493528})
-    );
-
-    const leaves=new THREE.Mesh(
-      new THREE.ConeGeometry(1.5,4,7),
-      new THREE.MeshStandardMaterial({color:0x233d30})
-    );
-
-    trunk.position.y=1;
-    leaves.position.y=3.3;
-    g.add(trunk,leaves);
-    g.position.set(x,0,z);
-    scene.add(g);
-  }
-
-  for(let z=-30;z<=30;z+=15){
-    const pole=new THREE.Mesh(
-      new THREE.CylinderGeometry(.08,.12,6,8),
-      new THREE.MeshStandardMaterial({color:0x292e2d})
-    );
-
-    pole.position.set(5,3,z);
-    scene.add(pole);
-
-    const light=new THREE.PointLight(0xffc879,1.1,13);
-    light.position.set(5,5.7,z);
-    scene.add(light);
-  }
-
-  clock=new THREE.Clock();
-  addEventListener('resize',onResize);
-
-  $('loading-note').style.display='none';
-}
-
-function onResize(){
-  if(!camera||!renderer)return;
-  camera.aspect=innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
-}
-
-function makePlayer(id,x,z){
-  const g=new THREE.Group();
-
-  const coat=new THREE.Mesh(
-    new THREE.CapsuleGeometry(.42,.8,4,8),
-    new THREE.MeshStandardMaterial({color:id===1?0x31566b:0x73503c})
-  );
-
-  const head=new THREE.Mesh(
-    new THREE.SphereGeometry(.3,12,10),
-    new THREE.MeshStandardMaterial({color:0xb98262})
-  );
-
-  const pack=new THREE.Mesh(
-    new THREE.BoxGeometry(.48,.55,.25),
-    new THREE.MeshStandardMaterial({color:0x252b27})
-  );
-
-  coat.position.y=1.05;
-  head.position.y=1.85;
-  pack.position.set(0,1.1,-.42);
-
-  g.add(coat,head,pack);
-  g.position.set(x,0,z);
-  scene.add(g);
-
-  return {
-    id,
-    group:g,
-    health:100,
-    stamina:100,
-    downed:false,
-    weapon:'balisong',
-    inventory:['balisong','revolver','bandage','bandage','medkit'],
-    backpack:['bandage','bandage','bandage'],
-    jumpVelocity:0,
-    ammo:{revolver:6,ak47:50},
-    armor:0,
-    crouch:false,
-    fireCooldown:0,
-    meleeCooldown:0,
-    score:0
-  };
-}
-
-function clearDynamic(){
-  for(const a of [...enemies,...pickups,...bullets]){
-    scene.remove(a.group||a.mesh);
-  }
-
-  enemies=[];
-  pickups=[];
-  bullets=[];
-}
-
-function startGame(twoPlayer){
-  coop=twoPlayer;
-  night=1;
-  kills=0;
-  score=0;
-  reviveTokens=0;
-  reviveProgress=0;
-  levelComplete=false;
-
-  clearDynamic();
-  players.forEach(p=>scene.remove(p.group));
-
-  players=[makePlayer(1,-2,8)];
-
-  if(coop)players.push(makePlayer(2,2,8));
-
-  $('game-screen').classList.remove('hidden');
-  $('game-screen').classList.add('visible');
-
-  paused=false;
-  running=true;
-
-  showScreen(null);
-  setNight(1);
-  spawnInitialLoot();
-  updateHUD();
-
-  toast('Find supplies. The first night is beginning.');
-}
-
-function setNight(n){
-  night=n;
-  kills=0;
-  reviveTokens=n===1?0:1;
-  reviveProgress=0;
-
-  enemies.forEach(e=>scene.remove(e.group));
-  enemies=[];
-
-  $('night-label').textContent=`${night} / 5`;
-  $('target-label').textContent=targets[night-1];
-  $('kills-label').textContent='0';
-  $('revive-label').textContent=reviveTokens;
-
-  toast(`NIGHT ${night}: Eliminate ${targets[night-1]} creatures.`);
-}
-
-function randomItem(){
-  const list=['bandage','bandage','medkit','ammo','drink','armor','palakol','itak','kawali','revolver','ak47'];
-  return list[Math.floor(Math.random()*list.length)];
-}
-
-function spawnPickup(type,x,z){
-  const d=items[type];
-
-  const mesh=new THREE.Mesh(
-    new THREE.BoxGeometry(.55,.55,.55),
-    new THREE.MeshStandardMaterial({
-      color:type==='medkit'?0xd9d5c9:type==='ammo'?0xc5a34b:type==='armor'?0x668b9b:0x9b6a46,
-      emissive:0x17100a
-    })
-  );
-
-  mesh.position.set(x,.5,z);
-  mesh.castShadow=true;
-  scene.add(mesh);
-
-  pickups.push({type,mesh,phase:Math.random()*6,baseY:.5});
-}
-
-function spawnInitialLoot(){
-  for(let i=0;i<18;i++){
-    spawnPickup(randomItem(),(Math.random()-.5)*48,(Math.random()-.5)*65);
-  }
-}
-
-function spawnEnemy(){
-  const pool=nightPools[night-1];
-  const type=pool[Math.floor(Math.random()*pool.length)];
-  const data=enemyData[type];
-
-  const group=new THREE.Group();
-
-  const body=new THREE.Mesh(
-    new THREE.SphereGeometry(data.size*.55,12,10),
-    new THREE.MeshStandardMaterial({
-      color:data.color,
-      roughness:.9
-    })
-  );
-
-  body.position.y=data.size*.65;
-  body.castShadow=true;
-  group.add(body);
-
-  const head=new THREE.Mesh(
-    new THREE.SphereGeometry(data.size*.25,10,8),
-    new THREE.MeshStandardMaterial({color:0x9b776a})
-  );
-
-  head.position.y=data.size*1.25;
-  group.add(head);
-
-  const eyeMaterial=new THREE.MeshBasicMaterial({color:0xff2525});
-
-  for(const x of [-.12,.12]){
-    const eye=new THREE.Mesh(new THREE.SphereGeometry(.045,6,6),eyeMaterial);
-    eye.position.set(x*data.size,data.size*1.28,data.size*.22);
-    group.add(eye);
-  }
-
-  const angle=Math.random()*Math.PI*2;
-  const distance=18+Math.random()*13;
-
-  group.position.set(
-    Math.cos(angle)*distance,
-    0,
-    Math.sin(angle)*distance
-  );
-
-  scene.add(group);
-
-  enemies.push({
-    type,
-    group,
-    hp:data.hp,
-    maxHp:data.hp,
-    damage:data.damage,
-    speed:data.speed,
-    size:data.size,
-    attack:1+Math.random()
-  });
-}
-
-function damageEnemy(enemy,damage,owner){
-  enemy.hp-=damage;
-
-  if(enemy.hp<=0){
-    const index=enemies.indexOf(enemy);
-
-    if(index>=0){
-      scene.remove(enemy.group);
-      enemies.splice(index,1);
-
-      kills++;
-      score+=enemyData[enemy.type].score;
-
-      if(score>highScore){
-        highScore=score;
-        safeSet('gsm-highscore',highScore);
-      }
-
-      $('kills-label').textContent=kills;
-
-      if(kills>=targets[night-1]&&!levelComplete){
-        completeNight();
-      }
     }
-  }
-}
 
-function playerShoot(p){
-  if(!p||p.downed)return;
+    for (let i = 0; i < 22; i++) {
 
-  const weapon=items[p.weapon];
+        obstacles.push({
+            x: 60 + Math.random() * (mapWidth - 120),
+            y: 60 + Math.random() * 450,
+            width: 18 + Math.random() * 25,
+            height: 18 + Math.random() * 25
+        });
 
-  if(weapon.type==='melee'){
-    playerMelee(p);
-    return;
-  }
-
-  if(p.ammo[p.weapon]<=0){
-    toast('No ammunition. Press R to reload.');
-    return;
-  }
-
-  if(p.fireCooldown>0)return;
-
-  p.fireCooldown=p.weapon==='ak47'?.12:.45;
-  p.ammo[p.weapon]--;
-
-  const direction=new THREE.Vector3(
-    Math.sin(p.group.rotation.y),
-    0,
-    Math.cos(p.group.rotation.y)
-  ).normalize();
-
-  const mesh=new THREE.Mesh(
-    new THREE.SphereGeometry(.12,8,8),
-    new THREE.MeshBasicMaterial({color:0xffd27a})
-  );
-
-  mesh.position.copy(p.group.position);
-  mesh.position.y=1.2;
-  mesh.position.addScaledVector(direction,1);
-
-  scene.add(mesh);
-
-  bullets.push({
-    mesh,
-    dir:direction,
-    damage:weapon.damage,
-    owner:p.id,
-    life:1.5
-  });
-
-  updateHUD();
-}
-
-function playerMelee(p){
-  if(!p||p.downed||p.meleeCooldown>0)return;
-
-  p.meleeCooldown=.55;
-
-  const weapon=items[p.weapon];
-
-  let target=null;
-  let closest=2.8;
-
-  for(const enemy of enemies){
-    const distance=p.group.position.distanceTo(enemy.group.position);
-
-    if(distance<closest){
-      closest=distance;
-      target=enemy;
     }
-  }
-
-  if(target){
-    damageEnemy(target,weapon.damage,p.id);
-    toast(`Hit ${enemyData[target.type].name}!`);
-  }
 }
 
-function reload(p){
-  if(!p)return;
+// ============================================
+// CANVAS SIZE
+// ============================================
 
-  const weapon=items[p.weapon];
+function resizeCanvas() {
 
-  if(weapon.type!=='gun')return;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-  p.ammo[p.weapon]=weapon.mag;
-  toast(`${weapon.name} reloaded.`);
-  updateHUD();
+    canvas.width = width * devicePixelRatio;
+    canvas.height = height * devicePixelRatio;
+
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    ctx.setTransform(
+        devicePixelRatio,
+        0,
+        0,
+        devicePixelRatio,
+        0,
+        0
+    );
 }
 
-function hurtPlayer(p,damage){
-  if(!p||p.downed)return;
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
 
-  const reduced=Math.max(1,damage-p.armor);
-  p.health=Math.max(0,p.health-reduced);
+// ============================================
+// SCREEN MANAGEMENT
+// ============================================
 
-  if(p.health<=0){
-    if(coop){
-      p.downed=true;
-      toast(`Player ${p.id} is down!`);
-    }else if(reviveTokens>0){
-      reviveTokens--;
-      p.health=50;
-      toast('You were revived!');
-    }else{
-      gameOver();
+const screenIds = [
+    "menu-screen",
+    "instructions-screen",
+    "settings-screen",
+    "pause-screen",
+    "victory-screen",
+    "died-screen"
+];
+
+function showScreen(id) {
+
+    // Hide all menu and overlay screens
+    screenIds.forEach(screenId => {
+
+        const screen = document.getElementById(screenId);
+
+        if (screen) {
+            screen.classList.remove("active");
+        }
+
+    });
+
+    // Hide the game screen first
+    const gameScreen = document.getElementById("game-screen");
+
+    if (gameScreen) {
+        gameScreen.classList.remove("visible");
+        gameScreen.style.display = "none";
     }
-  }
 
-  if(coop&&players.every(pl=>pl.downed)){
-    gameOver();
-  }
+    // Display the selected screen
+    if (id === "game-screen" || id === null) {
 
-  updateHUD();
+        if (gameScreen) {
+            gameScreen.classList.add("visible");
+            gameScreen.style.display = "block";
+        }
+
+    } else {
+
+        const selectedScreen = document.getElementById(id);
+
+        if (selectedScreen) {
+            selectedScreen.classList.add("active");
+        }
+
+    }
 }
 
-function reviveTeammate(dt){
-  if(!coop)return;
+function openGame() {
+    showScreen("game-screen");
+}
 
-  const downed=players.find(p=>p.downed);
-  const helper=players.find(p=>!p.downed);
+function returnToMenu() {
 
-  if(!downed||!helper||reviveTokens<=0){
-    reviveProgress=0;
-    return;
-  }
+    gameRunning = false;
+    gamePaused = false;
+    gameOver = false;
 
-  if(helper.group.position.distanceTo(downed.group.position)>2.5){
-    reviveProgress=0;
-    $('center-message').textContent='Move closer to revive!';
-    return;
-  }
+    clearInterval(restInterval);
 
-  reviveProgress+=dt;
-  $('center-message').textContent=`REVIVING... ${Math.min(100,Math.floor(reviveProgress/5*100))}%`;
+    showScreen("menu-screen");
+}
 
-  if(reviveProgress>=5){
-    downed.downed=false;
-    downed.health=50;
-    reviveTokens--;
-    reviveProgress=0;
+// ============================================
+// START GAME
+// ============================================
 
-    $('center-message').textContent='';
-    toast(`Player ${downed.id} has been revived!`);
+function startGame(mode) {
+
+    gameMode = mode;
+
+    currentNight = 1;
+    totalKills = 0;
+    reviveTokens = 0;
+
+    enemies = [];
+    bullets = [];
+    pickups = [];
+
+    players = [];
+
+    players.push(
+        createPlayer(1, mapWidth / 2 - 45, "#416f91")
+    );
+
+    if (mode === "coop") {
+
+        players.push(
+            createPlayer(2, mapWidth / 2 + 45, "#b47a48")
+        );
+
+    }
+
+    createMap();
+
+    spawnInterval = 1.5;
+    spawnTimer = 0;
+
+    gameRunning = true;
+    gamePaused = false;
+    gameOver = false;
+
+    openGame();
+
+    spawnInitialLoot();
+
+    startNight(1);
+
     updateHUD();
-  }
 }
 
-function completeNight(){
-  levelComplete=true;
-  running=false;
+// ============================================
+// NIGHT SYSTEM
+// ============================================
 
-  const final=night===5;
+function startNight(night) {
 
-  $('victory-title').textContent=final?'MENDEZ SURVIVED':'NIGHT CLEARED';
+    currentNight = night;
 
-  $('victory-description').textContent=final
-    ?`You survived all five nights. Final score: ${score}.`
-    :`You eliminated ${kills} creatures. Prepare for Night ${night+1}.`;
+    totalKills = 0;
+    spawnTimer = 0;
 
-  $('continue-btn').textContent=final?'PLAY AGAIN':'CONTINUE';
-  $('continue-btn').dataset.final=final?'yes':'no';
+    enemies = [];
+    bullets = [];
 
-  $('game-screen').classList.remove('visible');
-  showScreen('victory-screen');
-}
-
-function gameOver(){
-  running=false;
-
-  $('died-description').textContent=
-    `You reached Night ${night}. Score: ${score}. Best score: ${highScore}.`;
-
-  $('game-screen').classList.remove('visible');
-  showScreen('died-screen');
-}
-
-function retryNight(){
-  clearDynamic();
-
-  players.forEach(p=>{
-    p.health=100;
-    p.stamina=100;
-    p.downed=false;
-    p.group.rotation.set(0,0,0);
-    p.group.position.set(p.id===1?-2:2,0,8);
-    p.ammo={revolver:6,ak47:50};
-  });
-
-  setNight(night);
-
-  $('game-screen').classList.add('visible');
-  showScreen(null);
-
-  running=true;
-  paused=false;
-
-  spawnInitialLoot();
-  updateHUD();
-}
-
-function renderInventory(){
-  const p=players[0];
-  if(!p)return;
-
-  const draw=(arr,count,empty)=>Array.from({length:count},(_,i)=>{
-    const d=items[arr[i]];
-
-    return `<div class="slot">
-      <b>${d?.icon||empty}</b>
-      <small>${d?.name||'EMPTY'}</small>
-    </div>`;
-  }).join('');
-
-  $('quick-slots').innerHTML=draw(p.inventory,5,'＋');
-  $('backpack-slots').innerHTML=draw(p.backpack,10,'·');
-  $('backpack-count').textContent=`${p.backpack.length}/10`;
-}
-
-function updateHUD(){
-  for(const p of players){
-    const n=`p${p.id}`;
-
-    $(n+'-health').style.width=`${p.health}%`;
-    $(n+'-health-text').textContent=Math.ceil(p.health);
-
-    $(n+'-stamina').style.width=`${p.stamina}%`;
-    $(n+'-stamina-text').textContent=Math.ceil(p.stamina);
-
-    $(n+'-status').textContent=p.downed?'DOWNED':'ALIVE';
-    $(n+'-status').classList.toggle('down',p.downed);
-
-    $(n+'-weapon').textContent=items[p.weapon].name;
-
-    $(n+'-ammo').textContent=items[p.weapon].type==='gun'
-      ?`${p.ammo[p.weapon]}/${items[p.weapon].mag}`
-      :'MELEE';
-  }
-
-  if(!coop){
-    $('p2-card').style.opacity='.35';
-    $('p2-status').textContent='NOT PLAYING';
-    $('p2-health-text').textContent='—';
-    $('p2-stamina-text').textContent='—';
-    $('p2-weapon').textContent='—';
-    $('p2-ammo').textContent='—';
-  }else{
-    $('p2-card').style.opacity='1';
-  }
-
-  renderInventory();
-
-  $('enemy-count').textContent=enemies.length;
-  $('score-label').textContent=score;
-  $('revive-label').textContent=reviveTokens;
-}
-
-function collectPickup(p,index){
-  const item=pickups[index];
-  if(!item)return;
-
-  const type=item.type;
-  const d=items[type];
-
-  if(type==='ammo'){
-    p.ammo.revolver+=6;
-    p.ammo.ak47+=25;
-  }else if(d.type==='heal'){
-    if(p.backpack.length>=10){
-      toast('Backpack is full!');
-      return;
+    if (night === 1) {
+        reviveTokens = 0;
+    } else {
+        reviveTokens = 1;
     }
 
-    p.backpack.push(type);
-  }else if(type==='armor'){
-    p.armor=10;
-  }else if(type==='drink'){
-    p.stamina=100;
-  }else{
-    if(p.inventory.length<5){
-      p.inventory.push(type);
-    }else if(p.backpack.length<10){
-      p.backpack.push(type);
-    }else{
-      toast('Inventory is full!');
-      return;
+    spawnInterval = Math.max(0.35, 1.5 - (night - 1) * 0.2);
+
+    document.getElementById("night-text").textContent =
+        currentNight + " / 5";
+
+    document.getElementById("kill-count").textContent = "0";
+
+    document.getElementById("kill-target").textContent =
+        nightTargets[night - 1];
+
+    showNotification("NIGHT " + night + " HAS BEGUN!");
+
+    updateHUD();
+}
+
+// ============================================
+// RANDOM ITEM SPAWNING
+// ============================================
+
+function spawnInitialLoot() {
+
+    for (let i = 0; i < 24; i++) {
+
+        const list = [
+            "bandage",
+            "bandage",
+            "medkit",
+            "drink",
+            "armor",
+            "ammo",
+            "palakol",
+            "itak",
+            "kawali",
+            "revolver",
+            "ak47"
+        ];
+
+        const type = list[Math.floor(Math.random() * list.length)];
+
+        spawnPickup(type);
     }
-  }
-
-  scene.remove(item.mesh);
-  pickups.splice(index,1);
-
-  toast(`${d.name} collected.`);
-  updateHUD();
 }
 
-function useHeal(p){
-  if(!p||p.downed)return;
+function spawnPickup(type) {
 
-  let index=p.inventory.findIndex(x=>items[x]?.type==='heal');
-  let source=p.inventory;
+    let x = 50 + Math.random() * (mapWidth - 100);
+    let y = 60 + Math.random() * 460;
 
-  if(index<0){
-    source=p.backpack;
-    index=source.findIndex(x=>items[x]?.type==='heal');
-  }
-
-  if(index<0){
-    toast('No healing item available.');
-    return;
-  }
-
-  const type=source.splice(index,1)[0];
-
-  p.health=Math.min(100,p.health+items[type].heal);
-
-  toast(`${items[type].name} used.`);
-  updateHUD();
+    pickups.push({
+        type: type,
+        x: x,
+        y: y,
+        size: 16
+    });
 }
 
-function movePlayer(p,dt){
-  if(p.downed)return;
+// ============================================
+// ENEMY SPAWNING
+// ============================================
 
-  let x=0,z=0;
+function spawnEnemy() {
 
-  if(p.id===1){
-    if(keys.KeyA)x--;
-    if(keys.KeyD)x++;
-    if(keys.KeyW)z--;
-    if(keys.KeyS)z++;
-  }else{
-    if(keys.ArrowLeft)x--;
-    if(keys.ArrowRight)x++;
-    if(keys.ArrowUp)z--;
-    if(keys.ArrowDown)z++;
-  }
+    const availableEnemies = nightEnemies[currentNight - 1];
 
-  const moving=!!(x||z);
+    const type = availableEnemies[
+        Math.floor(Math.random() * availableEnemies.length)
+    ];
 
-  if(moving){
-    const v=new THREE.Vector3(x,0,z).normalize();
+    const data = enemyTypes[type];
 
-    p.group.position.addScaledVector(v,dt*(p.crouch?3:5));
-    p.group.rotation.y=Math.atan2(v.x,v.z)+Math.PI;
-  }
+    const side = Math.floor(Math.random() * 3);
 
-  if(p.jumpVelocity!==0||p.group.position.y>0){
-    p.group.position.y+=p.jumpVelocity*dt;
-    p.jumpVelocity-=18*dt;
+    let x;
+    let y;
 
-    if(p.group.position.y<=0){
-      p.group.position.y=0;
-      p.jumpVelocity=0;
+    if (side === 0) {
+        x = Math.random() * mapWidth;
+        y = 20;
+    } else if (side === 1) {
+        x = 20;
+        y = Math.random() * 450;
+    } else {
+        x = mapWidth - 20;
+        y = Math.random() * 450;
     }
-  }
 
-  p.group.position.x=clamp(p.group.position.x,-32,32);
-  p.group.position.z=clamp(p.group.position.z,-39,39);
+    enemies.push({
 
-  p.stamina=Math.min(100,p.stamina+dt*(moving?2:8));
+        type: type,
 
-  p.fireCooldown=Math.max(0,p.fireCooldown-dt);
-  p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);
+        x: x,
+        y: y,
+
+        health: data.health,
+        maxHealth: data.health,
+
+        damage: data.damage,
+        speed: data.speed,
+
+        size: data.size,
+        color: data.color,
+
+        attackCooldown: 0,
+
+        alive: true
+    });
 }
 
-function updateEnemies(dt){
-  for(const e of [...enemies]){
-    const target=players
-      .filter(p=>!p.downed)
-      .sort((a,b)=>
-        e.group.position.distanceTo(a.group.position)-
-        e.group.position.distanceTo(b.group.position)
-      )[0];
+// ============================================
+// PLAYER MOVEMENT
+// ============================================
 
-    if(!target)continue;
+function movePlayer(player, deltaTime) {
 
-    const dir=target.group.position.clone().sub(e.group.position);
-    const dist=dir.length();
+    if (player.downed) return;
 
-    if(dist>1.25){
-      dir.normalize();
-      e.group.position.addScaledVector(dir,e.speed*dt);
-      e.group.rotation.y=Math.atan2(dir.x,dir.z);
-    }else{
-      e.attack-=dt;
+    let dx = 0;
+    let dy = 0;
 
-      if(e.attack<=0){
-        hurtPlayer(target,e.damage);
-        e.attack=1.15;
-      }
+    if (player.id === 1) {
+
+        if (keys["KeyA"]) dx -= 1;
+        if (keys["KeyD"]) dx += 1;
+        if (keys["KeyS"]) dy += 1;
+
+        if (keys["KeyW"] && !player.jumping) {
+            jumpPlayer(player);
+        }
+
+    } else {
+
+        if (keys["ArrowLeft"]) dx -= 1;
+        if (keys["ArrowRight"]) dx += 1;
+        if (keys["ArrowDown"]) dy += 1;
+
+        if (keys["ArrowUp"] && !player.jumping) {
+            jumpPlayer(player);
+        }
+
     }
-  }
+
+    if (dx !== 0) {
+        player.facing = dx > 0 ? 1 : -1;
+    }
+
+    if (dx !== 0 || dy !== 0) {
+
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        dx /= length;
+        dy /= length;
+
+        player.x += dx * player.speed * deltaTime;
+        player.y += dy * player.speed * deltaTime;
+
+        player.energy = Math.max(0, player.energy - 5 * deltaTime);
+
+    } else {
+
+        player.energy = Math.min(200, player.energy + 8 * deltaTime);
+
+    }
+
+    player.x = Math.max(20, Math.min(mapWidth - 20, player.x));
+    player.y = Math.max(20, Math.min(mapHeight - 20, player.y));
+
+    player.attackCooldown = Math.max(0, player.attackCooldown - deltaTime);
+    player.meleeCooldown = Math.max(0, player.meleeCooldown - deltaTime);
 }
 
-function updatePickups(dt){
-  for(const item of pickups){
-    item.phase+=dt*2;
-    item.mesh.position.y=item.baseY+Math.sin(item.phase)*.12;
-    item.mesh.rotation.y+=dt*.8;
-  }
+// ============================================
+// JUMPING
+// ============================================
 
-  for(let i=pickups.length-1;i>=0;i--){
-    const item=pickups[i];
+function jumpPlayer(player) {
 
-    const p=players.find(pl=>
-      !pl.downed&&pl.group.position.distanceTo(item.mesh.position)<1.25
+    if (player.downed) return;
+
+    if (player.energy < 10) return;
+
+    player.jumping = true;
+    player.velocityY = -12;
+
+    player.energy -= 10;
+}
+
+// ============================================
+// PLAYER SHOOTING
+// ============================================
+
+function shoot(player) {
+
+    if (!gameRunning || gamePaused || player.downed) return;
+
+    const weapon = itemTypes[player.weapon];
+
+    if (!weapon || weapon.type !== "gun") {
+        showNotification("Equip a gun first!");
+        return;
+    }
+
+    if (player.reloading) return;
+
+    if (player.magazine[player.weapon] <= 0) {
+        showNotification("OUT OF BULLETS! PRESS R TO RELOAD.");
+        return;
+    }
+
+    if (player.attackCooldown > 0) return;
+
+    player.attackCooldown = 0.35;
+
+    player.magazine[player.weapon]--;
+
+    player.stats.shotsFired++;
+
+    let target = findNearestEnemy(player);
+
+    let direction = player.facing;
+
+    if (target) {
+        direction = target.x >= player.x ? 1 : -1;
+    }
+
+    bullets.push({
+
+        x: player.x + direction * 20,
+        y: player.y - 8,
+
+        direction: direction,
+
+        speed: 550,
+
+        damage: weapon.damage,
+
+        owner: player.id,
+
+        weapon: player.weapon
+    });
+
+    updateHUD();
+}
+
+// ============================================
+// FIND NEAREST ENEMY
+// ============================================
+
+function findNearestEnemy(player) {
+
+    let nearest = null;
+    let nearestDistance = Infinity;
+
+    enemies.forEach(enemy => {
+
+        const distance = Math.hypot(
+            enemy.x - player.x,
+            enemy.y - player.y
+        );
+
+        if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearest = enemy;
+        }
+
+    });
+
+    return nearest;
+}
+
+// ============================================
+// MELEE ATTACK
+// ============================================
+
+function meleeAttack(player) {
+
+    if (!gameRunning || gamePaused || player.downed) return;
+
+    if (player.meleeCooldown > 0) return;
+
+    player.meleeCooldown = 0.55;
+
+    const weapon = itemTypes[player.weapon];
+
+    if (!weapon || weapon.type !== "melee") {
+        showNotification("Equip a melee weapon first!");
+        return;
+    }
+
+    let target = null;
+    let closestDistance = 85;
+
+    enemies.forEach(enemy => {
+
+        const distance = Math.hypot(
+            enemy.x - player.x,
+            enemy.y - player.y
+        );
+
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            target = enemy;
+        }
+
+    });
+
+    if (target) {
+
+        damageEnemy(
+            target,
+            weapon.damage,
+            player.id,
+            "melee"
+        );
+
+    } else {
+
+        showNotification("No enemy within melee range.");
+
+    }
+}
+
+// ============================================
+// DAMAGE ENEMY
+// ============================================
+
+function damageEnemy(enemy, damage, playerId, attackType) {
+
+    if (!enemy.alive) return;
+
+    enemy.health -= damage;
+
+    if (enemy.health <= 0) {
+
+        enemy.alive = false;
+
+        totalKills++;
+
+        const player = players.find(p => p.id === playerId);
+
+        if (player) {
+
+            player.stats.totalKills++;
+
+            if (attackType === "melee") {
+                player.stats.meleeKills++;
+            } else {
+                player.stats.gunKills++;
+            }
+
+        }
+
+        enemies = enemies.filter(e => e.alive);
+
+        document.getElementById("kill-count").textContent = totalKills;
+
+        if (totalKills >= nightTargets[currentNight - 1]) {
+            completeNight();
+        }
+    }
+}
+
+// ============================================
+// BULLET MOVEMENT
+// ============================================
+
+function updateBullets(deltaTime) {
+
+    bullets.forEach((bullet, index) => {
+
+        bullet.x += bullet.direction * bullet.speed * deltaTime;
+
+        const target = enemies.find(enemy => {
+
+            const distance = Math.hypot(
+                enemy.x - bullet.x,
+                enemy.y - bullet.y
+            );
+
+            return distance < enemy.size + 8;
+        });
+
+        if (target) {
+
+            damageEnemy(
+                target,
+                bullet.damage,
+                bullet.owner,
+                "gun"
+            );
+
+            bullet.hit = true;
+
+        }
+
+        if (bullet.x < 0 || bullet.x > mapWidth) {
+            bullet.hit = true;
+        }
+
+    });
+
+    bullets = bullets.filter(b => !b.hit);
+}
+
+// ============================================
+// ENEMY MOVEMENT
+// ============================================
+
+function updateEnemies(deltaTime) {
+
+    enemies.forEach(enemy => {
+
+        if (!enemy.alive) return;
+
+        const targets = players.filter(p => !p.downed);
+
+        if (targets.length === 0) return;
+
+        let target = targets[0];
+
+        if (targets.length > 1) {
+
+            const distanceOne = Math.hypot(
+                targets[0].x - enemy.x,
+                targets[0].y - enemy.y
+            );
+
+            const distanceTwo = Math.hypot(
+                targets[1].x - enemy.x,
+                targets[1].y - enemy.y
+            );
+
+            target = distanceOne < distanceTwo ? targets[0] : targets[1];
+        }
+
+        const dx = target.x - enemy.x;
+        const dy = target.y - enemy.y;
+
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > 35) {
+
+            enemy.x += (dx / distance) * enemy.speed * deltaTime;
+            enemy.y += (dy / distance) * enemy.speed * deltaTime;
+
+        } else {
+
+            enemy.attackCooldown -= deltaTime;
+
+            if (enemy.attackCooldown <= 0) {
+
+                hurtPlayer(target, enemy.damage);
+
+                enemy.attackCooldown = 1.1;
+
+            }
+        }
+
+    });
+}
+
+// ============================================
+// PLAYER DAMAGE
+// ============================================
+
+function hurtPlayer(player, damage) {
+
+    if (player.downed) return;
+
+    let finalDamage = Math.max(1, damage - player.armor);
+
+    player.health -= finalDamage;
+
+    if (player.health <= 0) {
+
+        player.health = 0;
+
+        if (gameMode === "coop") {
+
+            player.downed = true;
+
+            showNotification("PLAYER " + player.id + " IS DOWN!");
+
+            checkGameOver();
+
+        } else if (reviveTokens > 0) {
+
+            reviveTokens--;
+
+            player.health = 50;
+
+            player.downed = false;
+
+            showNotification("YOU USED YOUR REVIVE!");
+
+        } else {
+
+            endGame();
+
+        }
+    }
+
+    updateHUD();
+}
+
+// ============================================
+// CO-OP REVIVAL
+// ============================================
+
+let reviveProgress = 0;
+
+function updateRevival(deltaTime) {
+
+    if (gameMode !== "coop") return;
+
+    if (!keys["KeyE"]) {
+        reviveProgress = 0;
+        return;
+    }
+
+    if (reviveTokens <= 0) return;
+
+    const helper = players.find(p => !p.downed);
+    const downed = players.find(p => p.downed);
+
+    if (!helper || !downed) return;
+
+    const distance = Math.hypot(
+        helper.x - downed.x,
+        helper.y - downed.y
     );
 
-    if(p)collectPickup(p,i);
-  }
+    if (distance > 65) {
+        reviveProgress = 0;
+        showNotification("MOVE CLOSER TO REVIVE!");
+        return;
+    }
+
+    reviveProgress += deltaTime;
+
+    document.getElementById("game-message").textContent =
+        "REVIVING: " + Math.floor(reviveProgress / 5 * 100) + "%";
+
+    if (reviveProgress >= 5) {
+
+        downed.downed = false;
+        downed.health = 50;
+
+        reviveTokens--;
+
+        helper.stats.revives++;
+
+        reviveProgress = 0;
+
+        document.getElementById("game-message").textContent = "";
+
+        showNotification("PLAYER " + downed.id + " HAS BEEN REVIVED!");
+
+        updateHUD();
+    }
 }
 
-function updateBullets(dt){
-  for(let i=bullets.length-1;i>=0;i--){
-    const b=bullets[i];
+// ============================================
+// CHECK GAME OVER
+// ============================================
 
-    b.mesh.position.addScaledVector(b.dir,dt*28);
-    b.life-=dt;
+function checkGameOver() {
 
-    const hit=enemies.find(e=>
-      e.group.position.distanceTo(b.mesh.position)<e.size*.7+.25
+    if (players.every(p => p.downed)) {
+        endGame();
+    }
+}
+
+// ============================================
+// RELOAD SYSTEM
+// ============================================
+
+function reload(player) {
+
+    if (player.downed) return;
+
+    const weapon = itemTypes[player.weapon];
+
+    if (!weapon || weapon.type !== "gun") return;
+
+    if (player.reloading) return;
+
+    if (player.magazine[player.weapon] >= weapon.magazine) return;
+
+    if (player.reserveAmmo <= 0) {
+        showNotification("NO EXTRA BULLETS!");
+        return;
+    }
+
+    player.reloading = true;
+    player.reloadTime = weapon.reloadTime;
+
+    showNotification("RELOADING " + weapon.name + "...");
+
+    const timer = setTimeout(() => {
+
+        if (!players.includes(player)) return;
+
+        const needed = weapon.magazine - player.magazine[player.weapon];
+
+        const loaded = Math.min(needed, player.reserveAmmo);
+
+        player.magazine[player.weapon] += loaded;
+        player.reserveAmmo -= loaded;
+
+        player.reloading = false;
+        player.reloadTime = 0;
+
+        showNotification("RELOAD COMPLETE!");
+
+        updateHUD();
+
+    }, weapon.reloadTime * 1000);
+
+    reloadTimers.push(timer);
+}
+
+// ============================================
+// HEALING SYSTEM
+// ============================================
+
+function useHeal(player) {
+
+    if (player.downed) return;
+
+    if (player.health >= player.maxHealth) {
+        showNotification("YOUR HEALTH IS ALREADY FULL.");
+        return;
+    }
+
+    let index = player.inventory.findIndex(item =>
+        itemTypes[item] && itemTypes[item].type === "heal"
     );
 
-    if(hit){
-      damageEnemy(hit,b.damage,b.owner);
-      scene.remove(b.mesh);
-      bullets.splice(i,1);
-    }else if(b.life<=0){
-      scene.remove(b.mesh);
-      bullets.splice(i,1);
-    }
-  }
-}
+    let source = player.inventory;
 
-function updateCamera(){
-  if(!players.length)return;
+    if (index === -1) {
 
-  const center=new THREE.Vector3();
+        source = player.backpack;
 
-  players.forEach(p=>center.add(p.group.position));
-  center.multiplyScalar(1/players.length);
+        index = source.findIndex(item =>
+            itemTypes[item] && itemTypes[item].type === "heal"
+        );
 
-  camera.position.lerp(
-    new THREE.Vector3(center.x,24,center.z+27),
-    .045
-  );
-
-  camera.lookAt(center.x,0,center.z);
-}
-
-function toast(message){
-  $('toast').textContent=message;
-  $('toast').classList.add('show');
-
-  clearTimeout(toastTimeout);
-
-  toastTimeout=setTimeout(
-    ()=>$('toast').classList.remove('show'),
-    1900
-  );
-}
-
-function action(p,kind){
-  if(!running||paused||!p)return;
-
-  if(kind==='shoot')playerShoot(p);
-
-  if(kind==='aim'){
-    aiming=!aiming;
-
-    if(items[p.weapon].type==='melee'){
-      playerMelee(p);
     }
 
-    $('crosshair').style.transform=aiming
-      ?'translate(-50%,-50%) scale(1.6)'
-      :'translate(-50%,-50%)';
-  }
+    if (index === -1) {
+        showNotification("NO HEALING ITEMS AVAILABLE.");
+        return;
+    }
 
-  if(kind==='reload')reload(p);
-  if(kind==='heal')useHeal(p);
-}
+    const item = source.splice(index, 1)[0];
 
-function selectWeapon(p,index){
-  const key=p?.inventory[index];
+    player.health = Math.min(
+        player.maxHealth,
+        player.health + itemTypes[item].amount
+    );
 
-  if(key&&['gun','melee'].includes(items[key]?.type)){
-    p.weapon=key;
+    player.stats.heals++;
+
+    showNotification(itemTypes[item].name + " USED!");
+
     updateHUD();
-  }
 }
 
-function gameLoop(){
-  requestAnimationFrame(gameLoop);
+// ============================================
+// PICKUP SYSTEM
+// ============================================
 
-  if(!renderer)return;
+function updatePickups() {
 
-  const dt=Math.min(clock.getDelta(),.05);
+    players.forEach(player => {
 
-  if(running&&!paused){
-    players.forEach(p=>movePlayer(p,dt));
+        if (player.downed) return;
 
-    if(coop&&keys.KeyE){
-      reviveTeammate(dt);
-    }else if(coop){
-      reviveProgress=0;
-      $('center-message').textContent='';
+        pickups.forEach((pickup, index) => {
+
+            const distance = Math.hypot(
+                player.x - pickup.x,
+                player.y - pickup.y
+            );
+
+            if (distance < 35) {
+
+                collectItem(player, index);
+
+            }
+
+        });
+
+    });
+
+}
+
+function collectItem(player, index) {
+
+    const pickup = pickups[index];
+
+    if (!pickup) return;
+
+    const type = pickup.type;
+    const item = itemTypes[type];
+
+    if (type === "ammo") {
+
+        player.reserveAmmo += item.amount;
+
+    } else if (type === "armor") {
+
+        player.armor = Math.min(20, player.armor + item.amount);
+
+    } else if (type === "drink") {
+
+        player.energy = Math.min(
+            player.maxEnergy,
+            player.energy + item.amount
+        );
+
+    } else {
+
+        if (player.inventory.length < 5) {
+
+            player.inventory.push(type);
+
+        } else if (player.backpack.length < 10) {
+
+            player.backpack.push(type);
+
+        } else {
+
+            showNotification("YOUR INVENTORY IS FULL!");
+            return;
+        }
     }
 
-    updateEnemies(dt);
-    updatePickups(dt);
-    updateBullets(dt);
+    pickups.splice(index, 1);
 
-    spawnClock+=dt;
+    showNotification(item.name + " COLLECTED!");
 
-    const maxAlive=night===5?24:18;
-    const interval=Math.max(.38,1.25-(night-1)*.14);
-
-    if(kills<targets[night-1]&&enemies.length<maxAlive&&spawnClock>interval){
-      spawnEnemy();
-      spawnClock=0;
-    }
-
-    updateCamera();
     updateHUD();
-  }
-
-  renderer.render(scene,camera);
 }
 
-$('single-btn').addEventListener('click',()=>startGame(false));
-$('coop-btn').addEventListener('click',()=>startGame(true));
+// ============================================
+// INVENTORY SELECTION
+// ============================================
 
-$('instructions-btn').addEventListener('click',()=>showScreen('instructions-screen'));
-$('settings-btn').addEventListener('click',()=>showScreen('settings-screen'));
+function selectSlot(player, number) {
 
-document.querySelectorAll('.back-menu').forEach(b=>
-  b.addEventListener('click',()=>showScreen('menu-screen'))
-);
+    const index = number - 1;
 
-$('pause-btn').addEventListener('click',()=>{
-  if(!running)return;
+    if (index < 0 || index >= 5) return;
 
-  running=false;
-  paused=true;
-  showScreen('pause-screen');
-});
+    if (!player.inventory[index]) return;
 
-$('resume-btn').addEventListener('click',()=>{
-  paused=false;
-  running=true;
-  showScreen(null);
-});
+    const item = player.inventory[index];
 
-function returnToMenu(){
-  running=false;
-  paused=false;
+    if (itemTypes[item].type === "gun" ||
+        itemTypes[item].type === "melee") {
 
-  $('game-screen').classList.remove('visible');
-  showScreen('menu-screen');
+        player.weapon = item;
+
+        player.selectedSlot = index;
+
+        showNotification(itemTypes[item].name + " EQUIPPED!");
+
+    }
+
+    updateHUD();
 }
 
-$('pause-menu-btn').addEventListener('click',returnToMenu);
+// ============================================
+// INVENTORY DISPLAY
+// ============================================
 
-document.querySelectorAll('.to-menu').forEach(b=>
-  b.addEventListener('click',returnToMenu)
-);
+function renderInventory(player) {
 
-$('retry-btn').addEventListener('click',retryNight);
+    const prefix = "p" + player.id;
 
-$('continue-btn').addEventListener('click',()=>{
-  if($('continue-btn').dataset.final==='yes'){
-    startGame(coop);
-    return;
-  }
+    const slots = document.getElementById(prefix + "-slots");
+    const backpack = document.getElementById(prefix + "-backpack");
 
-  clearDynamic();
-  setNight(night+1);
+    slots.innerHTML = "";
+    backpack.innerHTML = "";
 
-  players.forEach(p=>{
-    p.health=100;
-    p.stamina=100;
-    p.downed=false;
-    p.group.rotation.set(0,0,0);
-    p.group.position.set(p.id===1?-2:2,0,8);
-  });
+    for (let i = 0; i < 5; i++) {
 
-  spawnInitialLoot();
+        const item = player.inventory[i];
 
-  $('game-screen').classList.add('visible');
-  showScreen(null);
+        const slot = document.createElement("div");
 
-  running=true;
-  updateHUD();
+        slot.className = "inventory-slot";
+
+        if (player.selectedSlot === i) {
+            slot.classList.add("selected");
+        }
+
+        if (item) {
+
+            slot.innerHTML =
+                "<b>" + itemTypes[item].icon + "</b>" +
+                itemTypes[item].name;
+
+        } else {
+
+            slot.innerHTML = "<b>+</b>EMPTY";
+
+        }
+
+        slots.appendChild(slot);
+    }
+
+    for (let i = 0; i < 10; i++) {
+
+        const item = player.backpack[i];
+
+        const slot = document.createElement("div");
+
+        slot.className = "inventory-slot";
+
+        slot.innerHTML = item
+            ? "<b>" + itemTypes[item].icon + "</b>" + itemTypes[item].name
+            : "<b>·</b>EMPTY";
+
+        backpack.appendChild(slot);
+    }
+
+    document.getElementById(prefix + "-bag-count").textContent =
+        player.backpack.length + " / 10";
+}
+
+// ============================================
+// UPDATE HUD
+// ============================================
+
+function updateHUD() {
+
+    players.forEach(player => {
+
+        const prefix = "p" + player.id;
+
+        document.getElementById(prefix + "-health-bar").style.width =
+            player.health + "%";
+
+        document.getElementById(prefix + "-health-text").textContent =
+            Math.ceil(player.health);
+
+        document.getElementById(prefix + "-energy-bar").style.width =
+            (player.energy / player.maxEnergy * 100) + "%";
+
+        document.getElementById(prefix + "-energy-text").textContent =
+            Math.ceil(player.energy);
+
+        document.getElementById(prefix + "-weapon").textContent =
+            itemTypes[player.weapon].name;
+
+        document.getElementById(prefix + "-status").textContent =
+            player.downed ? "DOWNED" : "ALIVE";
+
+        renderInventory(player);
+
+    });
+
+    document.getElementById("revive-count").textContent = reviveTokens;
+
+    document.getElementById("enemy-count").textContent = enemies.length;
+
+    if (gameMode === "solo") {
+
+        document.getElementById("player-two-hud").style.display = "none";
+
+        document.getElementById("player-one-hud").style.margin = "auto";
+
+    } else {
+
+        document.getElementById("player-two-hud").style.display = "block";
+
+        document.getElementById("player-one-hud").style.margin = "0";
+
+    }
+}
+
+// ============================================
+// NIGHT COMPLETION
+// ============================================
+
+function completeNight() {
+
+    if (!gameRunning) return;
+
+    gameRunning = false;
+
+    if (currentNight === 5) {
+
+        showWinScreen();
+
+    } else {
+
+        startRestPeriod();
+
+    }
+}
+
+// ============================================
+// REST PERIOD
+// ============================================
+
+function startRestPeriod() {
+
+    restTimer = 30;
+
+    showScreen("rest-screen");
+
+    document.getElementById("rest-timer").textContent = restTimer;
+
+    restInterval = setInterval(() => {
+
+        restTimer--;
+
+        document.getElementById("rest-timer").textContent = restTimer;
+
+        if (restTimer <= 0) {
+
+            clearInterval(restInterval);
+
+            nextNight();
+
+        }
+
+    }, 1000);
+}
+
+function nextNight() {
+
+    clearInterval(restInterval);
+
+    currentNight++;
+
+    players.forEach(player => {
+
+        player.health = Math.min(100, player.health + 20);
+        player.energy = 200;
+
+        player.downed = false;
+
+    });
+
+    startNight(currentNight);
+
+    showScreen(null);
+
+    gameRunning = true;
+
+    updateHUD();
+}
+
+// ============================================
+// WIN SCREEN AND STATISTICS
+// ============================================
+
+function showWinScreen() {
+
+    gameRunning = false;
+
+    const statsContainer = document.getElementById("final-stats");
+
+    statsContainer.innerHTML = "";
+
+    players.forEach(player => {
+
+        const card = document.createElement("div");
+
+        card.className = "stats-card";
+
+        card.innerHTML = `
+            <h3>PLAYER ${player.id}</h3>
+            <p><span>Shots Fired</span><b>${player.stats.shotsFired}</b></p>
+            <p><span>Melee Kills</span><b>${player.stats.meleeKills}</b></p>
+            <p><span>Gun Kills</span><b>${player.stats.gunKills}</b></p>
+            <p><span>Total Kills</span><b>${player.stats.totalKills}</b></p>
+            <p><span>Heals Used</span><b>${player.stats.heals}</b></p>
+            <p><span>Revives</span><b>${player.stats.revives}</b></p>
+        `;
+
+        statsContainer.appendChild(card);
+
+    });
+
+    showScreen("win-screen");
+}
+
+// ============================================
+// DEATH SCREEN
+// ============================================
+
+function endGame() {
+
+    gameRunning = false;
+    gameOver = true;
+
+    clearInterval(restInterval);
+
+    document.getElementById("death-description").textContent =
+        "You survived until Night " + currentNight +
+        ". Your total kills: " + totalKills + ".";
+
+    showScreen("death-screen");
+}
+
+// ============================================
+// RETRY NIGHT
+// ============================================
+
+function retryNight() {
+
+    enemies = [];
+    bullets = [];
+
+    players.forEach(player => {
+
+        player.health = 100;
+        player.energy = 200;
+
+        player.downed = false;
+
+        player.x = player.id === 1
+            ? mapWidth / 2 - 45
+            : mapWidth / 2 + 45;
+
+        player.y = mapHeight - 125;
+
+        player.magazine = {
+            revolver: 6,
+            ak47: 50
+        };
+
+        player.reloading = false;
+
+    });
+
+    startNight(currentNight);
+
+    showScreen(null);
+
+    gameRunning = true;
+
+    updateHUD();
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+function showNotification(message) {
+
+    const notification = document.getElementById("notification");
+
+    notification.textContent = message;
+
+    notification.classList.add("show");
+
+    clearTimeout(notificationTimer);
+
+    notificationTimer = setTimeout(() => {
+
+        notification.classList.remove("show");
+
+    }, 1800);
+}
+
+// ============================================
+// DRAW MAP
+// ============================================
+
+function drawMap() {
+
+    ctx.fillStyle = "#354437";
+    ctx.fillRect(0, 0, mapWidth, mapHeight);
+
+    // Ground details
+
+    for (let i = 0; i < 160; i++) {
+
+        const x = (i * 83) % mapWidth;
+        const y = (i * 47) % mapHeight;
+
+        ctx.fillStyle = i % 2 === 0 ? "#40503b" : "#303e33";
+
+        ctx.fillRect(x, y, 3, 3);
+
+    }
+
+    // Village road
+
+    ctx.fillStyle = "#776b56";
+    ctx.fillRect(0, 470, mapWidth, 90);
+
+    ctx.fillStyle = "#b4a27b";
+
+    for (let x = 0; x < mapWidth; x += 75) {
+        ctx.fillRect(x, 512, 35, 3);
+    }
+
+    // Houses
+
+    buildings.forEach(house => {
+
+        ctx.fillStyle = house.color;
+        ctx.fillRect(house.x, house.y, house.width, house.height);
+
+        ctx.fillStyle = "#45352d";
+
+        ctx.beginPath();
+        ctx.moveTo(house.x - 8, house.y);
+        ctx.lineTo(house.x + house.width / 2, house.y - 30);
+        ctx.lineTo(house.x + house.width + 8, house.y);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#332c24";
+        ctx.fillRect(
+            house.x + house.width / 2 - 10,
+            house.y + house.height - 28,
+            20,
+            28
+        );
+
+        ctx.fillStyle = "#c3a36b";
+        ctx.fillRect(house.x + 12, house.y + 15, 18, 15);
+
+    });
+
+    // Trees
+
+    trees.forEach(tree => {
+
+        ctx.fillStyle = "#49372b";
+
+        ctx.fillRect(
+            tree.x - 4,
+            tree.y,
+            8,
+            tree.size + 10
+        );
+
+        ctx.fillStyle = "#1e3929";
+
+        ctx.beginPath();
+        ctx.arc(
+            tree.x,
+            tree.y,
+            tree.size,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+    });
+
+    // Obstacles
+
+    obstacles.forEach(obstacle => {
+
+        ctx.fillStyle = "#5d5a4d";
+
+        ctx.fillRect(
+            obstacle.x,
+            obstacle.y,
+            obstacle.width,
+            obstacle.height
+        );
+
+    });
+
+    // Player starting area
+
+    ctx.fillStyle = "rgba(190, 150, 75, .15)";
+
+    ctx.fillRect(
+        mapWidth / 2 - 140,
+        mapHeight - 175,
+        280,
+        145
+    );
+
+    ctx.strokeStyle = "#d1ad62";
+    ctx.strokeRect(
+        mapWidth / 2 - 140,
+        mapHeight - 175,
+        280,
+        145
+    );
+
+    ctx.fillStyle = "#e7d5a7";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+        "DEFENSE AREA",
+        mapWidth / 2,
+        mapHeight - 155
+    );
+}
+
+// ============================================
+// DRAW PLAYERS
+// ============================================
+
+function drawPlayers() {
+
+    players.forEach(player => {
+
+        ctx.save();
+
+        if (player.downed) {
+            ctx.globalAlpha = .35;
+        }
+
+        // Shadow
+
+        ctx.fillStyle = "#111";
+
+        ctx.beginPath();
+        ctx.ellipse(
+            player.x,
+            player.y + 18,
+            18,
+            8,
+            0,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+        // Body
+
+        ctx.fillStyle = player.color;
+
+        ctx.fillRect(
+            player.x - 12,
+            player.y - 15,
+            24,
+            29
+        );
+
+        // Head
+
+        ctx.fillStyle = "#c28d6a";
+
+        ctx.beginPath();
+        ctx.arc(
+            player.x,
+            player.y - 22,
+            10,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+        // Face direction
+
+        ctx.fillStyle = "#171717";
+
+        ctx.fillRect(
+            player.x + player.facing * 4,
+            player.y - 24,
+            3,
+            3
+        );
+
+        // Player number
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 10px Arial";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            "P" + player.id,
+            player.x,
+            player.y + 38
+        );
+
+        ctx.restore();
+
+    });
+}
+
+// ============================================
+// DRAW ENEMIES
+// ============================================
+
+function drawEnemies() {
+
+    enemies.forEach(enemy => {
+
+        // Body
+
+        ctx.fillStyle = enemy.color;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            enemy.x,
+            enemy.y,
+            enemy.size,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+        // Eyes
+
+        ctx.fillStyle = "#ff2b24";
+
+        ctx.fillRect(enemy.x - 7, enemy.y - 5, 4, 4);
+        ctx.fillRect(enemy.x + 3, enemy.y - 5, 4, 4);
+
+        // Health bar background
+
+        const barWidth = enemy.size * 2;
+
+        ctx.fillStyle = "#211c1b";
+
+        ctx.fillRect(
+            enemy.x - barWidth / 2,
+            enemy.y - enemy.size - 14,
+            barWidth,
+            5
+        );
+
+        // Health bar
+
+        ctx.fillStyle = "#c93632";
+
+        ctx.fillRect(
+            enemy.x - barWidth / 2,
+            enemy.y - enemy.size - 14,
+            barWidth * Math.max(0, enemy.health / enemy.maxHealth),
+            5
+        );
+
+        // Enemy name
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "9px Arial";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            enemyTypes[enemy.type].name,
+            enemy.x,
+            enemy.y - enemy.size - 19
+        );
+
+    });
+}
+
+// ============================================
+// DRAW PICKUPS
+// ============================================
+
+function drawPickups() {
+
+    pickups.forEach(pickup => {
+
+        const item = itemTypes[pickup.type];
+
+        ctx.fillStyle = "#d5ae61";
+
+        ctx.fillRect(
+            pickup.x - 12,
+            pickup.y - 12,
+            24,
+            24
+        );
+
+        ctx.fillStyle = "#161616";
+        ctx.font = "15px Arial";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            item.icon,
+            pickup.x,
+            pickup.y + 5
+        );
+
+    });
+}
+
+// ============================================
+// DRAW BULLETS
+// ============================================
+
+function drawBullets() {
+
+    bullets.forEach(bullet => {
+
+        ctx.fillStyle = "#ffe19a";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            bullet.x,
+            bullet.y,
+            5,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+    });
+}
+
+// ============================================
+// GAME UPDATE
+// ============================================
+
+function update(deltaTime) {
+
+    if (!gameRunning || gamePaused) return;
+
+    players.forEach(player => {
+        movePlayer(player, deltaTime);
+    });
+
+    updateBullets(deltaTime);
+
+    updateEnemies(deltaTime);
+
+    updatePickups();
+
+    updateRevival(deltaTime);
+
+    spawnTimer += deltaTime;
+
+    if (totalKills < nightTargets[currentNight - 1]) {
+
+        if (spawnTimer >= spawnInterval && enemies.length < 45) {
+
+            spawnEnemy();
+
+            spawnTimer = 0;
+
+        }
+
+    }
+
+    updateHUD();
+
+    checkGameOver();
+}
+
+// ============================================
+// DRAW GAME
+// ============================================
+
+function draw() {
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Scale the game map to fit the screen.
+
+    const scale = Math.min(
+        width / mapWidth,
+        height / mapHeight
+    );
+
+    const offsetX = (width - mapWidth * scale) / 2;
+    const offsetY = (height - mapHeight * scale) / 2;
+
+    ctx.save();
+
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+
+    drawMap();
+    drawPickups();
+    drawBullets();
+    drawEnemies();
+    drawPlayers();
+
+    ctx.restore();
+}
+
+// ============================================
+// MAIN GAME LOOP
+// ============================================
+
+function gameLoop(timestamp) {
+
+    const deltaTime = lastTime
+        ? Math.min((timestamp - lastTime) / 1000, 0.05)
+        : 0;
+
+    lastTime = timestamp;
+
+    update(deltaTime);
+
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
+
+// ============================================
+// KEYBOARD CONTROLS
+// ============================================
+
+window.addEventListener("keydown", event => {
+
+    keys[event.code] = true;
+
+    if (
+        ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)
+    ) {
+        event.preventDefault();
+    }
+
+    if (event.repeat) return;
+
+    if (!gameRunning || gamePaused) return;
+
+    const playerOne = players[0];
+    const playerTwo = players[1];
+
+    // Player 1 controls
+
+    if (event.code === "KeyT" && playerOne) {
+        shoot(playerOne);
+    }
+
+    if (event.code === "KeyY" && playerOne) {
+        meleeAttack(playerOne);
+    }
+
+    // Player 2 controls
+
+    if (event.code === "Numpad1" && playerTwo) {
+        shoot(playerTwo);
+    }
+
+    if (event.code === "Numpad2" && playerTwo) {
+        meleeAttack(playerTwo);
+    }
+
+    // Reload
+
+    if (event.code === "KeyR") {
+        players.forEach(player => reload(player));
+    }
+
+    // Healing
+
+    if (event.code === "KeyH") {
+        players.forEach(player => useHeal(player));
+    }
+
+    // Inventory selection
+
+    if (event.code.startsWith("Digit")) {
+
+        const number = Number(event.code.replace("Digit", ""));
+
+        if (number >= 1 && number <= 5 && playerOne) {
+            selectSlot(playerOne, number);
+        }
+
+    }
+
 });
 
-$('sfx-volume').value=safeGet('gsm-sfx',60);
-$('music-volume').value=safeGet('gsm-music',35);
+window.addEventListener("keyup", event => {
 
-$('sfx-volume').addEventListener('input',e=>
-  safeSet('gsm-sfx',e.target.value)
-);
+    keys[event.code] = false;
 
-$('music-volume').addEventListener('input',e=>
-  safeSet('gsm-music',e.target.value)
-);
-
-addEventListener('keydown',e=>{
-  keys[e.code]=true;
-
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){
-    e.preventDefault();
-  }
-
-  if(e.repeat)return;
-
-  if(e.code==='Escape'&&running){
-    running=false;
-    paused=true;
-    showScreen('pause-screen');
-    return;
-  }
-
-  if(!running||paused)return;
-
-  if(e.code==='Space'&&players[0]&&!players[0].downed&&players[0].group.position.y===0){
-    players[0].jumpVelocity=7;
-  }
-
-  if(e.code==='Numpad0'&&players[1]&&!players[1].downed&&players[1].group.position.y===0){
-    players[1].jumpVelocity=7;
-  }
-
-  if(e.code.startsWith('Digit')&&e.code.length===6){
-    selectWeapon(players[0],Number(e.code.slice(-1))-1);
-  }
-
-  if(e.code==='KeyU')action(players[0],'shoot');
-  if(e.code==='KeyI')action(players[0],'aim');
-
-  if(e.code==='NumpadDelete')action(players[1],'shoot');
-  if(e.code==='NumpadEnter')action(players[1],'aim');
-
-  if(e.code==='KeyR')players.forEach(reload);
-  if(e.code==='KeyC')players.forEach(p=>p.crouch=!p.crouch);
-  if(e.code==='KeyH')players.forEach(useHeal);
 });
 
-addEventListener('keyup',e=>{
-  keys[e.code]=false;
+
+// ============================================
+// BUTTON EVENTS
+// ============================================
+
+// Helper function for connecting buttons safely
+
+function bindButton(id, callback) {
+
+    const button = document.getElementById(id);
+
+    if (button) {
+        button.addEventListener("click", callback);
+    } else {
+        console.warn("Button not found in HTML:", id);
+    }
+
+}
+
+// ============================================
+// MAIN MENU
+// ============================================
+
+bindButton("start-btn", () => {
+    showScreen("player-screen");
 });
 
-addEventListener('mousedown',e=>{
-  if(!running||paused||coop)return;
-
-  if(e.button===0)action(players[0],'shoot');
-  if(e.button===2)action(players[0],'aim');
+bindButton("menu-btn", () => {
+    showScreen("settings-screen");
 });
 
-addEventListener('contextmenu',e=>e.preventDefault());
+bindButton("exit-btn", () => {
 
-try{
-  init3D();
-  gameLoop();
-}catch(error){
-  console.error('Gabi sa Mendez failed to initialize:',error);
+    const confirmExit = confirm(
+        "Do you want to leave Gabi sa Mendez?"
+    );
 
-  $('loading-note').style.display='flex';
+    if (confirmExit) {
+        window.close();
 
-  $('loading-note').innerHTML=
-    '<h2>GAME COULD NOT START</h2><p>Check your internet connection and browser console. Run this project using VS Code Live Server.</p>';
+        alert("You may now close this browser tab.");
+    }
+
+});
+
+// ============================================
+// SETTINGS AND INSTRUCTIONS
+// ============================================
+
+document.querySelectorAll(".back-menu").forEach(button => {
+
+    button.addEventListener("click", () => {
+        showScreen("menu-screen");
+    });
+
+});
+
+bindButton("instructions-btn", () => {
+    showScreen("instructions-screen");
+});
+
+bindButton("settings-btn", () => {
+    showScreen("settings-screen");
+});
+
+// ============================================
+// PLAYER SELECTION
+// ============================================
+
+bindButton("solo-btn", () => {
+    startGame("solo");
+});
+
+bindButton("coop-btn", () => {
+    startGame("coop");
+});
+
+// ============================================
+// PAUSE MENU
+// ============================================
+
+bindButton("pause-btn", () => {
+
+    if (!gameRunning) return;
+
+    gamePaused = true;
+
+    showScreen("pause-screen");
+
+});
+
+bindButton("resume-btn", () => {
+
+    gamePaused = false;
+
+    showScreen("game-screen");
+
+});
+
+bindButton("pause-menu-btn", () => {
+    returnToMenu();
+});
+
+// ============================================
+// REST PERIOD
+// ============================================
+
+bindButton("rest-continue-btn", () => {
+
+    if (currentNight < 5) {
+        nextNight();
+    }
+
+});
+
+// ============================================
+// WIN SCREEN
+// ============================================
+
+bindButton("win-menu-btn", () => {
+    returnToMenu();
+});
+
+// ============================================
+// DEATH SCREEN
+// ============================================
+
+bindButton("retry-btn", () => {
+    retryNight();
+});
+
+bindButton("death-menu-btn", () => {
+    returnToMenu();
+});
+
+// ============================================
+// AUDIO SETTINGS
+// ============================================
+
+const sfxVolume = document.getElementById("sfx-volume");
+const musicVolume = document.getElementById("music-volume");
+
+if (sfxVolume) {
+
+    sfxVolume.addEventListener("input", event => {
+        localStorage.setItem("gsm-sfx", event.target.value);
+    });
+
+}
+
+if (musicVolume) {
+
+    musicVolume.addEventListener("input", event => {
+        localStorage.setItem("gsm-music", event.target.value);
+    });
+
+}
+
+
+// ============================================
+// INITIAL SETTINGS
+// ============================================
+
+const playerTwoHUD = document.getElementById("player-two-hud");
+
+if (playerTwoHUD) {
+    playerTwoHUD.style.display = "none";
+}
+
+if (localStorage.getItem("gsm-sfx") && sfxVolume) {
+    sfxVolume.value = localStorage.getItem("gsm-sfx");
+}
+
+if (localStorage.getItem("gsm-music") && musicVolume) {
+    musicVolume.value = localStorage.getItem("gsm-music");
 }
