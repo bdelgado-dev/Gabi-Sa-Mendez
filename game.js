@@ -82,28 +82,28 @@ const itemTypes = {
         name: "Balisong",
         type: "melee",
         damage: 10,
-        icon: "🔪"
+        icon: "🔪", asset: "balisong.ico"
     },
 
     palakol: {
         name: "Palakol",
         type: "melee",
         damage: 25,
-        icon: "🪓"
+        icon: "🪓", asset: "palakol.ico"
     },
 
     itak: {
         name: "Itak",
         type: "melee",
         damage: 15,
-        icon: "🗡️"
+        icon: "🗡️", asset: "itak.ico"
     },
 
     kawali: {
         name: "Kawali",
         type: "melee",
         damage: 12,
-        icon: "🍳"
+        icon: "🍳", asset: "kawali.ico"
     },
 
     revolver: {
@@ -112,7 +112,7 @@ const itemTypes = {
         damage: 25,
         magazine: 6,
         reloadTime: 2.5,
-        icon: "🔫"
+        icon: "🔫", asset: "revolver.ico"
     },
 
     ak47: {
@@ -121,44 +121,102 @@ const itemTypes = {
         damage: 50,
         magazine: 50,
         reloadTime: 2,
-        icon: "🎯"
+        icon: "🎯", asset: "ak-47.ico"
     },
 
     bandage: {
         name: "Bandage",
         type: "heal",
         amount: 20,
-        icon: "🩹"
+        icon: "🩹", asset: "bandage.ico"
     },
 
     medkit: {
         name: "Medkit",
         type: "heal",
         amount: 60,
-        icon: "🧰"
+        icon: "🧰", asset: "medkit.ico"
     },
 
     drink: {
         name: "Sports Drink",
         type: "energy",
         amount: 80,
-        icon: "🥤"
+        icon: "🥤", asset: "sports-drink.ico"
     },
 
     armor: {
         name: "Armor",
         type: "armor",
         amount: 20,
-        icon: "🛡️"
+        icon: "🛡️", asset: "armor.ico"
     },
 
     ammo: {
         name: "Bullets",
         type: "ammo",
         amount: 30,
-        icon: "📦"
+        icon: "📦", asset: "bullets.ico"
+    },
+
+    anting: {
+        name: "Anting-anting",
+        type: "special",
+        price: 80,
+        description: "A mysterious protective charm worn around the neck. Activating it casts a force field around you, protecting you from incoming attacks for 5 seconds. Use only when necessary.",
+        icon: "📿",
+        asset: "anting-anting.ico"
+    },
+
+    bawang: {
+        name: "Bawang",
+        type: "throwable",
+        damage: 50,
+        price: 60,
+        icon: "🧄",
+        asset: "bawang.ico"
+    },
+
+    unliAmmo: {
+        name: "Unlimited Ammo",
+        type: "perk",
+        perk: "ammo",
+        price: 150,
+        icon: "♾️",
+        asset: "unli-ammo.ico"
+    },
+
+    unliEnergy: {
+        name: "Unlimited Energy",
+        type: "perk",
+        perk: "energy",
+        price: 120,
+        icon: "⚡",
+        asset: "unli-energy.ico"
+    },
+
+    gold: {
+        name: "Gold Coin",
+        type: "currency",
+        icon: "🪙"
     }
 };
+
+// Item icons are loaded from the filenames supplied by the developer.
+// Keep these files in: assets/items/
+const itemImages = {};
+
+Object.entries(itemTypes).forEach(([key, item]) => {
+
+    if (!item.asset) return;
+
+    const image = new Image();
+
+    image.src = "assets/items/" + item.asset;
+
+    itemImages[key] = image;
+
+});
 
 // ============================================
 // GAME VARIABLES
@@ -173,6 +231,7 @@ let players = [];
 let enemies = [];
 let bullets = [];
 let pickups = [];
+let effects = [];
 
 let keys = {};
 
@@ -189,8 +248,8 @@ let notificationTimer = null;
 let restInterval = null;
 let reloadTimers = [];
 
-let mapWidth = 1200;
-let mapHeight = 700;
+let mapWidth = 1500;
+let mapHeight = 900;
 
 let buildings = [];
 let trees = [];
@@ -222,6 +281,16 @@ function createPlayer(id, x, color) {
         maxEnergy: 200,
 
         armor: 0,
+        coins: 0,
+
+        forceFieldTime: 0,
+        unlimitedAmmoTime: 0,
+        unlimitedEnergyTime: 0,
+
+        meleeAnimation: 0,
+        throwAnimation: 0,
+        muzzleFlash: 0,
+        garlicCooldown: 0,
 
         speed: 210,
 
@@ -277,6 +346,7 @@ function createPlayer(id, x, color) {
             revives: 0
         }
     };
+
 }
 
 // ============================================
@@ -290,9 +360,12 @@ function createMap() {
     obstacles = [];
 
     const housePositions = [
-        [120, 120], [330, 180], [550, 100],
-        [850, 140], [1020, 280], [170, 360],
-        [440, 330], [750, 300], [970, 460]
+        [90, 90], [300, 145], [520, 75],
+        [760, 115], [1010, 80], [1280, 140],
+        [1080, 300], [120, 330], [355, 285],
+        [590, 335], [825, 300], [1390, 470],
+        [230, 520], [520, 560], [780, 510],
+        [1080, 620], [1320, 730]
     ];
 
     housePositions.forEach((position, index) => {
@@ -307,26 +380,27 @@ function createMap() {
 
     });
 
-    for (let i = 0; i < 32; i++) {
+    for (let i = 0; i < 58; i++) {
 
         trees.push({
             x: 30 + Math.random() * (mapWidth - 60),
-            y: 50 + Math.random() * 430,
+            y: 50 + Math.random() * (mapHeight - 100),
             size: 13 + Math.random() * 12
         });
 
     }
 
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 34; i++) {
 
         obstacles.push({
             x: 60 + Math.random() * (mapWidth - 120),
-            y: 60 + Math.random() * 450,
+            y: 60 + Math.random() * (mapHeight - 120),
             width: 18 + Math.random() * 25,
             height: 18 + Math.random() * 25
         });
 
     }
+
 }
 
 // ============================================
@@ -352,6 +426,7 @@ function resizeCanvas() {
         0,
         0
     );
+
 }
 
 window.addEventListener("resize", resizeCanvas);
@@ -420,6 +495,7 @@ function showScreen(id) {
         }
 
     }
+
 }
 
 function openGame() {
@@ -438,6 +514,12 @@ function returnToMenu() {
 
     clearInterval(restInterval);
     clearTimeout(notificationTimer);
+
+    players = [];
+    enemies = [];
+    bullets = [];
+    pickups = [];
+    effects = [];
 
     reloadTimers.forEach(timer => clearTimeout(timer));
     reloadTimers = [];
@@ -461,6 +543,7 @@ function startGame(mode) {
     enemies = [];
     bullets = [];
     pickups = [];
+    effects = [];
 
     players = [];
 
@@ -487,7 +570,7 @@ function startGame(mode) {
 
     createMap();
 
-    spawnInterval = 1.5;
+    spawnInterval = 2.35;
     spawnTimer = 0;
 
     gameRunning = true;
@@ -520,19 +603,27 @@ function startNight(night) {
 
     reviveProgress = 0;
 
+    players.forEach(player => {
+
+        if (player.unlimitedAmmoTime > 0) {
+            player.unlimitedAmmoTime = 999;
+        }
+
+        if (player.unlimitedEnergyTime > 0) {
+            player.unlimitedEnergyTime = 999;
+        }
+
+    });
+
     document.getElementById("game-message").textContent = "";
 
     if (night === 1) {
-
         reviveTokens = 0;
-
     } else {
-
         reviveTokens = 1;
-
     }
 
-    spawnInterval = Math.max(0.35, 1.5 - (night - 1) * 0.2);
+    spawnInterval = [2.35, 1.95, 1.55, 1.15, 0.78][night - 1];
 
     document.getElementById("night-text").textContent =
         currentNight + " / 5";
@@ -567,7 +658,9 @@ function spawnInitialLoot() {
             "itak",
             "kawali",
             "revolver",
-            "ak47"
+            "ak47",
+            "bawang",
+            "anting"
         ];
 
         const type = list[Math.floor(Math.random() * list.length)];
@@ -575,12 +668,13 @@ function spawnInitialLoot() {
         spawnPickup(type);
 
     }
+
 }
 
 function spawnPickup(type) {
 
     let x = 50 + Math.random() * (mapWidth - 100);
-    let y = 60 + Math.random() * 460;
+    let y = 60 + Math.random() * (mapHeight - 120);
 
     pickups.push({
         type: type,
@@ -618,12 +712,12 @@ function spawnEnemy() {
     } else if (side === 1) {
 
         x = 20;
-        y = Math.random() * 450;
+        y = Math.random() * (mapHeight - 40);
 
     } else {
 
         x = mapWidth - 20;
-        y = Math.random() * 450;
+        y = Math.random() * (mapHeight - 40);
 
     }
 
@@ -638,7 +732,7 @@ function spawnEnemy() {
         maxHealth: data.health,
 
         damage: data.damage,
-        speed: data.speed,
+        speed: data.speed * [0.72, 0.82, 0.94, 1.08, 1.22][currentNight - 1],
 
         size: data.size,
         color: data.color,
@@ -658,6 +752,14 @@ function spawnEnemy() {
 function movePlayer(player, deltaTime) {
 
     if (player.downed) return;
+
+    player.forceFieldTime = Math.max(0, player.forceFieldTime - deltaTime);
+    player.unlimitedAmmoTime = Math.max(0, player.unlimitedAmmoTime - deltaTime);
+    player.unlimitedEnergyTime = Math.max(0, player.unlimitedEnergyTime - deltaTime);
+    player.meleeAnimation = Math.max(0, player.meleeAnimation - deltaTime);
+    player.throwAnimation = Math.max(0, player.throwAnimation - deltaTime);
+    player.muzzleFlash = Math.max(0, player.muzzleFlash - deltaTime);
+    player.garlicCooldown = Math.max(0, player.garlicCooldown - deltaTime);
 
     let dx = 0;
     let dy = 0;
@@ -698,21 +800,136 @@ function movePlayer(player, deltaTime) {
         dx /= length;
         dy /= length;
 
-        player.x += dx * player.speed * deltaTime;
-        player.y += dy * player.speed * deltaTime;
+        const movementSpeed = (player.energy <= 0 && player.unlimitedEnergyTime <= 0)
+            ? player.speed * 0.55
+            : player.speed;
 
-        player.energy = Math.max(
-            0,
-            player.energy - 5 * deltaTime
-        );
+        player.x += dx * movementSpeed * deltaTime;
+        player.y += dy * movementSpeed * deltaTime;
 
-    } else {
+        if (player.unlimitedEnergyTime <= 0) {
+            player.energy = Math.max(0, player.energy - 5 * deltaTime);
+        } else {
+            player.energy = player.maxEnergy;
+        }
+
+    }
+
+    // KEEP PLAYER INSIDE THE MAP
+    player.x = Math.max(20, Math.min(mapWidth - 20, player.x));
+    player.y = Math.max(20, Math.min(mapHeight - 20, player.y));
+
+    player.attackCooldown = Math.max(0, player.attackCooldown - deltaTime);
+    player.meleeCooldown = Math.max(0, player.meleeCooldown - deltaTime);
+
+    if (player.reloading) {
+
+        player.reloadTime -= deltaTime;
+
+        if (player.reloadTime <= 0) {
+            finishReload(player);
+        }
+
+    }
+
+}
+
+
+// ============================================
+// PLAYER MOVEMENT
+// ============================================
+
+function movePlayer(player, deltaTime) {
+
+    if (player.downed) return;
+
+    // UPDATE TIMERS
+    player.forceFieldTime = Math.max(0, player.forceFieldTime - deltaTime);
+    player.unlimitedAmmoTime = Math.max(0, player.unlimitedAmmoTime - deltaTime);
+    player.unlimitedEnergyTime = Math.max(0, player.unlimitedEnergyTime - deltaTime);
+    player.meleeAnimation = Math.max(0, player.meleeAnimation - deltaTime);
+    player.throwAnimation = Math.max(0, player.throwAnimation - deltaTime);
+    player.muzzleFlash = Math.max(0, player.muzzleFlash - deltaTime);
+    player.garlicCooldown = Math.max(0, player.garlicCooldown - deltaTime);
+
+    let dx = 0;
+    let dy = 0;
+
+    // PLAYER 1 MOVEMENT
+    if (player.id === 1) {
+
+        if (keys["KeyA"]) dx -= 1;
+        if (keys["KeyD"]) dx += 1;
+        if (keys["KeyW"]) dy -= 1;
+        if (keys["KeyS"]) dy += 1;
+
+    }
+
+    // PLAYER 2 MOVEMENT
+    else {
+
+        if (keys["ArrowLeft"]) dx -= 1;
+        if (keys["ArrowRight"]) dx += 1;
+        if (keys["ArrowUp"]) dy -= 1;
+        if (keys["ArrowDown"]) dy += 1;
+
+    }
+
+    // MOVEMENT
+    if (dx !== 0 || dy !== 0) {
+
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        // UPDATE FACING DIRECTION
+        player.facingX = dx / length;
+        player.facingY = dy / length;
+
+        if (dx !== 0) {
+            player.facing = dx > 0 ? 1 : -1;
+        }
+
+        // NORMALIZE MOVEMENT
+        dx /= length;
+        dy /= length;
+
+        // MOVEMENT SPEED
+        const movementSpeed =
+            (player.energy <= 0 && player.unlimitedEnergyTime <= 0)
+                ? player.speed * 0.55
+                : player.speed;
+
+        player.x += dx * movementSpeed * deltaTime;
+        player.y += dy * movementSpeed * deltaTime;
+
+        // ENERGY CONSUMPTION
+        if (player.unlimitedEnergyTime <= 0) {
+
+            player.energy = Math.max(
+                0,
+                player.energy - 5 * deltaTime
+            );
+
+        } else {
+
+            player.energy = player.maxEnergy;
+
+        }
+
+    }
+
+    // ENERGY RECOVERY WHEN NOT MOVING
+    else {
 
         player.energy = Math.min(
             player.maxEnergy,
             player.energy + 8 * deltaTime
         );
 
+    }
+
+    // UNLIMITED ENERGY
+    if (player.unlimitedEnergyTime > 0) {
+        player.energy = player.maxEnergy;
     }
 
     // MAP BOUNDARIES
@@ -750,27 +967,26 @@ function shoot(player) {
     const weapon = itemTypes[player.weapon];
 
     if (!weapon || weapon.type !== "gun") {
-
         showNotification("Equip a gun first!");
         return;
-
     }
 
     if (player.reloading) return;
 
-    if (player.magazine[player.weapon] <= 0) {
-
+    if (player.unlimitedAmmoTime <= 0 && player.magazine[player.weapon] <= 0) {
         showNotification("OUT OF BULLETS! PRESS YOUR RELOAD KEY.");
         return;
-
     }
 
     if (player.attackCooldown > 0) return;
 
     player.attackCooldown = 0.35;
 
-    player.magazine[player.weapon]--;
+    if (player.unlimitedAmmoTime <= 0) {
+        player.magazine[player.weapon]--;
+    }
 
+    player.muzzleFlash = 0.09;
     player.stats.shotsFired++;
 
     // GET THE PLAYER'S FACING DIRECTION
@@ -780,8 +996,8 @@ function shoot(player) {
     // CREATE BULLET IN THE FACING DIRECTION
     bullets.push({
 
-        x: player.x + directionX * 20,
-        y: player.y - 8 + directionY * 20,
+        x: player.x + directionX * 25 + directionY * 8,
+        y: player.y - 10 + directionY * 25 - directionX * 8,
 
         directionX: directionX,
         directionY: directionY,
@@ -806,6 +1022,44 @@ function shoot(player) {
 // FIND NEAREST ENEMY
 // ============================================
 
+function throwGarlic(player) {
+
+    if (!gameRunning || gamePaused || player.downed || player.garlicCooldown > 0) return;
+
+    let source = player.inventory;
+    let index = source.indexOf("bawang");
+
+    if (index < 0) {
+        source = player.backpack;
+        index = source.indexOf("bawang");
+    }
+
+    if (index < 0) {
+        showNotification("NO BAWANG AVAILABLE!");
+        return;
+    }
+
+    source.splice(index, 1);
+
+    player.garlicCooldown = 0.7;
+    player.throwAnimation = 0.22;
+
+    bullets.push({
+        kind: "garlic",
+        x: player.x + player.facingX * 20,
+        y: player.y - 8 + player.facingY * 18,
+        directionX: player.facingX,
+        directionY: player.facingY,
+        speed: 300,
+        fuse: 0.65,
+        owner: player.id,
+        hit: false
+    });
+
+    updateHUD();
+
+}
+
 function findNearestEnemy(player) {
 
     let nearest = null;
@@ -819,10 +1073,8 @@ function findNearestEnemy(player) {
         );
 
         if (distance < nearestDistance) {
-
             nearestDistance = distance;
             nearest = enemy;
-
         }
 
     });
@@ -842,14 +1094,13 @@ function meleeAttack(player) {
     if (player.meleeCooldown > 0) return;
 
     player.meleeCooldown = 0.55;
+    player.meleeAnimation = 0.24;
 
     const weapon = itemTypes[player.weapon];
 
     if (!weapon || weapon.type !== "melee") {
-
         showNotification("Equip a melee weapon first!");
         return;
-
     }
 
     let target = null;
@@ -862,11 +1113,16 @@ function meleeAttack(player) {
             enemy.y - player.y
         );
 
-        if (distance < closestDistance) {
+        const towardX = (enemy.x - player.x) / Math.max(1, distance);
+        const towardY = (enemy.y - player.y) / Math.max(1, distance);
 
+        const facingDot =
+            towardX * player.facingX +
+            towardY * player.facingY;
+
+        if (distance < closestDistance && facingDot > 0.05) {
             closestDistance = distance;
             target = enemy;
-
         }
 
     });
@@ -911,18 +1167,25 @@ function damageEnemy(enemy, damage, playerId, attackType) {
             player.stats.totalKills++;
 
             if (attackType === "melee") {
-
                 player.stats.meleeKills++;
-
             } else {
-
                 player.stats.gunKills++;
-
             }
 
         }
 
         enemies = enemies.filter(e => e.alive);
+
+        // Every defeated creature may leave coins for the next-night shop.
+        const coinDrop = 5 + Math.floor(Math.random() * 11);
+
+        pickups.push({
+            type: "gold",
+            x: enemy.x,
+            y: enemy.y,
+            size: 13,
+            amount: coinDrop
+        });
 
         document.getElementById("kill-count").textContent = totalKills;
 
@@ -941,6 +1204,48 @@ function damageEnemy(enemy, damage, playerId, attackType) {
 function updateBullets(deltaTime) {
 
     bullets.forEach(bullet => {
+
+        if (bullet.kind === "garlic") {
+
+            bullet.x += bullet.directionX * bullet.speed * deltaTime;
+            bullet.y += bullet.directionY * bullet.speed * deltaTime;
+
+            bullet.fuse -= deltaTime;
+
+            if (
+                bullet.fuse <= 0 ||
+                bullet.x < 0 ||
+                bullet.x > mapWidth ||
+                bullet.y < 0 ||
+                bullet.y > mapHeight
+            ) {
+
+                enemies.forEach(enemy => {
+
+                    if (
+                        Math.hypot(
+                            enemy.x - bullet.x,
+                            enemy.y - bullet.y
+                        ) < 95
+                    ) {
+                        damageEnemy(enemy, 50, bullet.owner, "garlic");
+                    }
+
+                });
+
+                bullet.hit = true;
+
+                effects.push({
+                    x: bullet.x,
+                    y: bullet.y,
+                    time: 0.35
+                });
+
+            }
+
+            return;
+
+        }
 
         // MOVE BULLET IN ITS FIRING DIRECTION
         bullet.x += bullet.directionX * bullet.speed * deltaTime;
@@ -978,9 +1283,7 @@ function updateBullets(deltaTime) {
             bullet.y < 0 ||
             bullet.y > mapHeight
         ) {
-
             bullet.hit = true;
-
         }
 
     });
@@ -1017,7 +1320,9 @@ function updateEnemies(deltaTime) {
                 targets[1].y - enemy.y
             );
 
-            target = distanceOne < distanceTwo ? targets[0] : targets[1];
+            target = distanceOne < distanceTwo
+                ? targets[0]
+                : targets[1];
 
         }
 
@@ -1056,6 +1361,7 @@ function updateEnemies(deltaTime) {
 function hurtPlayer(player, damage) {
 
     if (player.downed) return;
+    if (player.forceFieldTime > 0) return;
 
     let finalDamage = Math.max(1, damage - player.armor);
 
@@ -1078,7 +1384,6 @@ function hurtPlayer(player, damage) {
             reviveTokens--;
 
             player.health = 50;
-
             player.downed = false;
 
             showNotification("YOU USED YOUR REVIVE!");
@@ -1212,10 +1517,8 @@ function reload(player) {
     if (player.magazine[player.weapon] >= weapon.magazine) return;
 
     if (player.reserveAmmo <= 0) {
-
         showNotification("NO EXTRA BULLETS!");
         return;
-
     }
 
     player.reloading = true;
@@ -1264,15 +1567,12 @@ function useHeal(player) {
 
     if (player.downed) return;
 
-    if (player.health >= player.maxHealth) {
-
-        showNotification("YOUR HEALTH IS ALREADY FULL.");
-        return;
-
-    }
-
     let index = player.inventory.findIndex(item =>
-        itemTypes[item] && itemTypes[item].type === "heal"
+        itemTypes[item] && (
+            itemTypes[item].type === "heal" ||
+            itemTypes[item].type === "special" ||
+            itemTypes[item].type === "perk"
+        )
     );
 
     let source = player.inventory;
@@ -1282,28 +1582,60 @@ function useHeal(player) {
         source = player.backpack;
 
         index = source.findIndex(item =>
-            itemTypes[item] && itemTypes[item].type === "heal"
+            itemTypes[item] && (
+                itemTypes[item].type === "heal" ||
+                itemTypes[item].type === "special" ||
+                itemTypes[item].type === "perk"
+            )
         );
 
     }
 
     if (index === -1) {
 
-        showNotification("NO HEALING ITEMS AVAILABLE.");
+        showNotification("NO HEALING OR SPECIAL ITEMS AVAILABLE.");
+        return;
+
+    }
+
+    if (
+        player.health >= player.maxHealth &&
+        itemTypes[source[index]].type === "heal"
+    ) {
+
+        showNotification("YOUR HEALTH IS ALREADY FULL.");
         return;
 
     }
 
     const item = source.splice(index, 1)[0];
 
-    player.health = Math.min(
-        player.maxHealth,
-        player.health + itemTypes[item].amount
-    );
+    const data = itemTypes[item];
 
-    player.stats.heals++;
+    if (data.type === "heal") {
 
-    showNotification(itemTypes[item].name + " USED!");
+        player.health = Math.min(
+            player.maxHealth,
+            player.health + data.amount
+        );
+
+        player.stats.heals++;
+
+    } else if (item === "anting") {
+
+        player.forceFieldTime = 5;
+
+    } else if (item === "unliAmmo") {
+
+        player.unlimitedAmmoTime = 999;
+
+    } else if (item === "unliEnergy") {
+
+        player.unlimitedEnergyTime = 999;
+
+    }
+
+    showNotification(data.name + " ACTIVATED!");
 
     updateHUD();
 
@@ -1330,9 +1662,7 @@ function updatePickups() {
             );
 
             if (distance < 35) {
-
                 collectItem(player, index);
-
             }
 
         }
@@ -1352,7 +1682,11 @@ function collectItem(player, index) {
 
     if (!item) return;
 
-    if (type === "ammo") {
+    if (type === "gold") {
+
+        player.coins += pickup.amount || 5;
+
+    } else if (type === "ammo") {
 
         player.reserveAmmo += item.amount;
 
@@ -1380,7 +1714,6 @@ function collectItem(player, index) {
         } else {
 
             showNotification("YOUR INVENTORY IS FULL!");
-
             return;
 
         }
@@ -1389,7 +1722,11 @@ function collectItem(player, index) {
 
     pickups.splice(index, 1);
 
-    showNotification(item.name + " COLLECTED!");
+    showNotification(
+        type === "gold"
+            ? "+" + (pickup.amount || 5) + " GOLD COINS!"
+            : item.name + " COLLECTED!"
+    );
 
     updateHUD();
 
@@ -1427,6 +1764,8 @@ function selectSlot(player, number) {
 }
 
 // ============================================
+
+// ============================================
 // INVENTORY DISPLAY
 // ============================================
 
@@ -1442,58 +1781,176 @@ function renderInventory(player) {
     slots.innerHTML = "";
     backpack.innerHTML = "";
 
-    for (let i = 0; i < 5; i++) {
+    const makeSlot = (item, index, isBag) => {
 
-        const item = player.inventory[i];
+        const slot = document.createElement("button");
 
-        const slot = document.createElement("div");
+        slot.type = "button";
 
-        slot.className = "inventory-slot";
+        slot.className =
+            "inventory-slot" +
+            (!isBag && player.selectedSlot === index ? " selected" : "");
 
-        if (player.selectedSlot === i) {
-            slot.classList.add("selected");
-        }
+        slot.title =
+            item && itemTypes[item]
+                ? itemTypes[item].name
+                : "Empty slot";
 
-        if (item) {
+        if (item && itemTypes[item]) {
 
-            slot.innerHTML =
-                "<b>" + itemTypes[item].icon + "</b>" +
-                itemTypes[item].name;
+            const data = itemTypes[item];
+
+            if (data.asset) {
+
+                const img = document.createElement("img");
+
+                img.src = "assets/items/" + data.asset;
+                img.alt = data.name;
+
+                img.onerror = () => {
+                    img.remove();
+                    slot.insertAdjacentText("afterbegin", data.icon);
+                };
+
+                slot.appendChild(img);
+
+            } else {
+
+                const icon = document.createElement("b");
+
+                icon.textContent = data.icon;
+
+                slot.appendChild(icon);
+
+            }
+
+            const name = document.createElement("small");
+
+            name.textContent = data.name;
+
+            slot.appendChild(name);
 
         } else {
 
-            slot.innerHTML = "<b>+</b>EMPTY";
+            slot.textContent = "EMPTY";
 
         }
 
-        slots.appendChild(slot);
+        slot.addEventListener("click", () => {
 
+            if (!item) return;
+
+            if (itemTypes[item].type === "throwable") {
+
+                throwGarlic(player);
+
+            } else if (isBag) {
+
+                if (["heal", "special", "perk"].includes(itemTypes[item].type)) {
+
+                    const idx = player.backpack.indexOf(item);
+
+                    const chosen = player.backpack.splice(idx, 1)[0];
+
+                    activateInventoryItem(player, chosen);
+
+                } else if (["gun", "melee"].includes(itemTypes[item].type)) {
+
+                    if (player.inventory.length < 5) {
+                        player.inventory.push(item);
+                    }
+
+                    player.backpack.splice(
+                        player.backpack.indexOf(item),
+                        1
+                    );
+
+                    player.weapon = item;
+
+                }
+
+            } else {
+
+                if (["gun", "melee"].includes(itemTypes[item].type)) {
+
+                    selectSlot(player, index + 1);
+
+                } else if (["heal", "special", "perk"].includes(itemTypes[item].type)) {
+
+                    const chosen = player.inventory.splice(index, 1)[0];
+
+                    activateInventoryItem(player, chosen);
+
+                }
+
+            }
+
+            updateHUD();
+
+        });
+
+        return slot;
+
+    };
+
+    for (let i = 0; i < 5; i++) {
+        slots.appendChild(makeSlot(player.inventory[i], i, false));
     }
 
     for (let i = 0; i < 10; i++) {
+        backpack.appendChild(makeSlot(player.backpack[i], i, true));
+    }
 
-        const item = player.backpack[i];
+    backpack.style.display = player.inventoryOpen ? "grid" : "none";
 
-        const slot = document.createElement("div");
+    const label = document.querySelector(
+        "#player-" +
+        (player.id === 1 ? "one" : "two") +
+        "-hud .backpack-label"
+    );
 
-        slot.className = "inventory-slot";
-
-        slot.innerHTML = item
-            ? "<b>" + itemTypes[item].icon + "</b>" + itemTypes[item].name
-            : "<b>·</b>EMPTY";
-
-        backpack.appendChild(slot);
-
+    if (label) {
+        label.style.display = player.inventoryOpen ? "flex" : "none";
     }
 
     const bagCount = document.getElementById(prefix + "-bag-count");
 
     if (bagCount) {
+        bagCount.textContent = player.backpack.length + " / 10";
+    }
 
-        bagCount.textContent =
-            player.backpack.length + " / 10";
+}
+
+function activateInventoryItem(player, item) {
+
+    const data = itemTypes[item];
+
+    if (!data) return;
+
+    if (data.type === "heal") {
+
+        player.health = Math.min(
+            player.maxHealth,
+            player.health + data.amount
+        );
+
+        player.stats.heals++;
+
+    } else if (item === "anting") {
+
+        player.forceFieldTime = 5;
+
+    } else if (item === "unliAmmo") {
+
+        player.unlimitedAmmoTime = 999;
+
+    } else if (item === "unliEnergy") {
+
+        player.unlimitedEnergyTime = 999;
 
     }
+
+    showNotification(data.name + " ACTIVATED!");
 
 }
 
@@ -1526,9 +1983,7 @@ function getInventoryPopupBounds(player) {
     );
 
     if (popupY < padding) {
-
         popupY = player.y + 45;
-
     }
 
     return {
@@ -1674,9 +2129,7 @@ function drawInventoryPopup(player) {
         let itemName = "EMPTY";
 
         if (item && itemTypes[item]) {
-
             itemName = itemTypes[item].icon + " " + itemTypes[item].name;
-
         }
 
         ctx.fillText(
@@ -1759,8 +2212,11 @@ canvas.addEventListener("click", function(event) {
     const offsetX = (rect.width - mapWidth * scale) / 2;
     const offsetY = (rect.height - mapHeight * scale) / 2;
 
-    const mouseX = (event.clientX - rect.left - offsetX) / scale;
-    const mouseY = (event.clientY - rect.top - offsetY) / scale;
+    const mouseX =
+        (event.clientX - rect.left - offsetX) / scale;
+
+    const mouseY =
+        (event.clientY - rect.top - offsetY) / scale;
 
     players.forEach(player => {
 
@@ -1777,9 +2233,7 @@ canvas.addEventListener("click", function(event) {
             mouseY >= closeY &&
             mouseY <= closeY + 17
         ) {
-
             player.inventoryOpen = false;
-
         }
 
     });
@@ -1814,8 +2268,10 @@ function updateHUD() {
         }
 
         if (energyBar) {
+
             energyBar.style.width =
                 (player.energy / player.maxEnergy * 100) + "%";
+
         }
 
         if (energyText) {
@@ -1823,7 +2279,13 @@ function updateHUD() {
         }
 
         if (weaponText) {
-            weaponText.textContent = itemTypes[player.weapon].name;
+
+            weaponText.textContent =
+                itemTypes[player.weapon].name +
+                " · " +
+                player.coins +
+                " GOLD";
+
         }
 
         if (statusText) {
@@ -1882,6 +2344,11 @@ function completeNight() {
 
     gameRunning = false;
 
+    players.forEach(player => {
+        player.unlimitedAmmoTime = 0;
+        player.unlimitedEnergyTime = 0;
+    });
+
     if (currentNight === 5) {
 
         showWinScreen();
@@ -1904,6 +2371,8 @@ function startRestPeriod() {
 
     showScreen("rest-screen");
 
+    buildShop();
+
     document.getElementById("rest-timer").textContent = restTimer;
 
     clearInterval(restInterval);
@@ -1923,6 +2392,137 @@ function startRestPeriod() {
         }
 
     }, 1000);
+
+}
+
+function buildShop() {
+
+    let shop = document.getElementById("night-shop");
+
+    if (!shop) {
+
+        shop = document.createElement("div");
+
+        shop.id = "night-shop";
+
+        const panel = document.querySelector("#rest-screen .panel");
+
+        if (panel) {
+            panel.appendChild(shop);
+        }
+
+    }
+
+    if (!shop) return;
+
+    shop.innerHTML =
+        "<h3>VILLAGE SUPPLY SHOP</h3>" +
+        "<p>Spend your collected gold before the next night.</p>";
+
+    const products = [
+        ["anting", "Anting-anting", 80, "5-second protective force field"],
+        ["bawang", "Bawang", 60, "Throwable garlic bomb · 50 damage"],
+        ["unliAmmo", "Unlimited Ammo", 150, "Unlimited bullets for the next night"],
+        ["unliEnergy", "Unlimited Energy", 120, "Unlimited energy for the next night"],
+        ["medkit", "Medkit", 35, "Restore 60 health"],
+        ["ammo", "Bullets", 25, "Add 30 reserve bullets"]
+    ];
+
+    players.forEach(player => {
+
+        const section = document.createElement("div");
+
+        section.className = "shop-player";
+
+        const title = document.createElement("h4");
+
+        title.textContent =
+            "PLAYER " + player.id + " · " + player.coins + " GOLD";
+
+        section.appendChild(title);
+
+        products.forEach(([key, name, price, description]) => {
+
+            const row = document.createElement("div");
+
+            row.className = "shop-item";
+
+            const info = document.createElement("span");
+
+            info.textContent = name + " — " + description;
+
+            const buy = document.createElement("button");
+
+            buy.type = "button";
+            buy.textContent = price + " GOLD";
+
+            buy.addEventListener("click", () => {
+
+                if (player.coins < price) {
+
+                    showNotification("NOT ENOUGH GOLD!");
+
+                    return;
+
+                }
+
+                player.coins -= price;
+
+                if (key === "ammo") {
+
+                    player.reserveAmmo += 30;
+
+                } else if (key === "medkit") {
+
+                    player.backpack.push("medkit");
+
+                } else if (
+                    key === "anting" ||
+                    key === "bawang" ||
+                    key === "unliAmmo" ||
+                    key === "unliEnergy"
+                ) {
+
+                    const target =
+                        player.inventory.length < 5
+                            ? player.inventory
+                            : player.backpack;
+
+                    if (
+                        target === player.backpack &&
+                        target.length >= 10
+                    ) {
+
+                        player.coins += price;
+
+                        showNotification("INVENTORY FULL!");
+
+                        return;
+
+                    }
+
+                    target.push(key);
+
+                }
+
+                title.textContent =
+                    "PLAYER " + player.id + " · " + player.coins + " GOLD";
+
+                showNotification(name + " PURCHASED!");
+
+                updateHUD();
+
+            });
+
+            row.append(info, buy);
+
+            section.appendChild(row);
+
+        });
+
+        shop.appendChild(section);
+
+    });
 
 }
 
@@ -2024,6 +2624,7 @@ function retryNight() {
     reviveProgress = 0;
 
     reloadTimers.forEach(timer => clearTimeout(timer));
+
     reloadTimers = [];
 
     players.forEach(player => {
@@ -2094,10 +2695,16 @@ function showNotification(message) {
 function drawMap() {
 
     ctx.fillStyle = "#354437";
-    ctx.fillRect(0, 0, mapWidth, mapHeight);
+
+    ctx.fillRect(
+        0,
+        0,
+        mapWidth,
+        mapHeight
+    );
 
     // GROUND DETAILS
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < 300; i++) {
 
         const x = (i * 83) % mapWidth;
         const y = (i * 47) % mapHeight;
@@ -2110,15 +2717,21 @@ function drawMap() {
 
     // VILLAGE ROAD
     ctx.fillStyle = "#776b56";
-    ctx.fillRect(0, 470, mapWidth, 90);
+
+    ctx.fillRect(
+        0,
+        650,
+        mapWidth,
+        100
+    );
 
     ctx.fillStyle = "#b4a27b";
 
     for (let x = 0; x < mapWidth; x += 75) {
-        ctx.fillRect(x, 512, 35, 3);
+        ctx.fillRect(x, 697, 35, 3);
     }
 
-    // HOUSES
+// HOUSES
     buildings.forEach(house => {
 
         ctx.fillStyle = house.color;
@@ -2203,35 +2816,6 @@ function drawMap() {
 
     });
 
-    // PLAYER STARTING AREA
-    ctx.fillStyle = "rgba(190, 150, 75, .15)";
-
-    ctx.fillRect(
-        mapWidth / 2 - 140,
-        mapHeight - 175,
-        280,
-        145
-    );
-
-    ctx.strokeStyle = "#d1ad62";
-
-    ctx.strokeRect(
-        mapWidth / 2 - 140,
-        mapHeight - 175,
-        280,
-        145
-    );
-
-    ctx.fillStyle = "#e7d5a7";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-
-    ctx.fillText(
-        "DEFENSE AREA",
-        mapWidth / 2,
-        mapHeight - 155
-    );
-
 }
 
 // ============================================
@@ -2304,6 +2888,97 @@ function drawPlayers() {
         );
 
         ctx.fill();
+
+        // EQUIPPED WEAPON SPRITE + ATTACK ANIMATION
+        const equipped = itemTypes[player.weapon];
+        const weaponImage = itemImages[player.weapon];
+        const angle = Math.atan2(player.facingY, player.facingX);
+
+        if (weaponImage && weaponImage.complete && weaponImage.naturalWidth) {
+
+            ctx.save();
+
+            ctx.translate(
+                player.x + player.facingX * 13,
+                player.y - 7 + player.facingY * 9
+            );
+
+            ctx.rotate(angle);
+
+            if (player.meleeAnimation > 0) {
+                ctx.rotate(-0.9 + (0.9 - player.meleeAnimation) * 7.5);
+            }
+
+            ctx.drawImage(
+                weaponImage,
+                0,
+                -8,
+                equipped.type === "gun" ? 30 : 25,
+                16
+            );
+
+            ctx.restore();
+
+        }
+
+        if (player.throwAnimation > 0) {
+
+            ctx.strokeStyle = "#c28d6a";
+            ctx.lineWidth = 5;
+            ctx.lineCap = "square";
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                player.x + player.facingX * 7,
+                player.y - 7
+            );
+
+            ctx.lineTo(
+                player.x + player.facingX * 24,
+                player.y - 7 + player.facingY * 18
+            );
+
+            ctx.stroke();
+
+        }
+
+        if (player.muzzleFlash > 0) {
+
+            ctx.fillStyle = "#ffd36a";
+
+            ctx.beginPath();
+
+            ctx.arc(
+                player.x + player.facingX * 38,
+                player.y - 9 + player.facingY * 26,
+                7,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.fill();
+
+        }
+
+        if (player.forceFieldTime > 0) {
+
+            ctx.strokeStyle = "rgba(90,190,255,.85)";
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+
+            ctx.arc(
+                player.x,
+                player.y - 5,
+                30,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.stroke();
+
+        }
 
         // PLAYER NUMBER
         ctx.fillStyle = "white";
@@ -2410,15 +3085,31 @@ function drawPickups() {
             24
         );
 
-        ctx.fillStyle = "#161616";
-        ctx.font = "15px Arial";
-        ctx.textAlign = "center";
+        const iconImage = itemImages[pickup.type];
 
-        ctx.fillText(
-            item.icon,
-            pickup.x,
-            pickup.y + 5
-        );
+        if (iconImage && iconImage.complete && iconImage.naturalWidth) {
+
+            ctx.drawImage(
+                iconImage,
+                pickup.x - 10,
+                pickup.y - 10,
+                20,
+                20
+            );
+
+        } else {
+
+            ctx.fillStyle = "#161616";
+            ctx.font = "15px Arial";
+            ctx.textAlign = "center";
+
+            ctx.fillText(
+                item.icon || "?",
+                pickup.x,
+                pickup.y + 5
+            );
+
+        }
 
     });
 
@@ -2431,6 +3122,42 @@ function drawPickups() {
 function drawBullets() {
 
     bullets.forEach(bullet => {
+
+        if (bullet.kind === "garlic") {
+
+            const img = itemImages.bawang;
+
+            if (img && img.complete && img.naturalWidth) {
+
+                ctx.drawImage(
+                    img,
+                    bullet.x - 10,
+                    bullet.y - 10,
+                    20,
+                    20
+                );
+
+            } else {
+
+                ctx.fillStyle = "#e9e3d2";
+
+                ctx.beginPath();
+
+                ctx.arc(
+                    bullet.x,
+                    bullet.y,
+                    8,
+                    0,
+                    Math.PI * 2
+                );
+
+                ctx.fill();
+
+            }
+
+            return;
+
+        }
 
         const angle = Math.atan2(
             bullet.directionY,
@@ -2482,6 +3209,12 @@ function update(deltaTime) {
     });
 
     updateBullets(deltaTime);
+
+    effects.forEach(effect => {
+        effect.time -= deltaTime;
+    });
+
+    effects = effects.filter(effect => effect.time > 0);
 
     updateEnemies(deltaTime);
 
@@ -2537,6 +3270,30 @@ function draw() {
     drawMap();
     drawPickups();
     drawBullets();
+
+    effects.forEach(effect => {
+
+        ctx.strokeStyle =
+            "rgba(230,210,150," +
+            Math.max(0, effect.time / .35) +
+            ")";
+
+        ctx.lineWidth = 5;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            effect.x,
+            effect.y,
+            95 * (1 - effect.time / .35),
+            0,
+            Math.PI * 2
+        );
+
+        ctx.stroke();
+
+    });
+
     drawEnemies();
     drawPlayers();
 
@@ -2612,6 +3369,10 @@ window.addEventListener("keydown", event => {
         useHeal(playerOne);
     }
 
+    if (event.code === "KeyB" && playerOne) {
+        throwGarlic(playerOne);
+    }
+
     // PLAYER 2 CONTROLS
     if (event.code === "Numpad1" && playerTwo) {
         shoot(playerTwo);
@@ -2629,10 +3390,16 @@ window.addEventListener("keydown", event => {
         useHeal(playerTwo);
     }
 
+    if (event.code === "Numpad7" && playerTwo) {
+        throwGarlic(playerTwo);
+    }
+
     // INVENTORY POP-UP
     if (event.code === "KeyO" && playerOne) {
 
         playerOne.inventoryOpen = !playerOne.inventoryOpen;
+
+        updateHUD();
 
     }
 
@@ -2640,17 +3407,19 @@ window.addEventListener("keydown", event => {
 
         playerTwo.inventoryOpen = !playerTwo.inventoryOpen;
 
+        updateHUD();
+
     }
 
     // INVENTORY SELECTION - PLAYER 1
     if (event.code.startsWith("Digit")) {
 
-        const number = Number(event.code.replace("Digit", ""));
+        const number = Number(
+            event.code.replace("Digit", "")
+        );
 
         if (number >= 1 && number <= 5 && playerOne) {
-
             selectSlot(playerOne, number);
-
         }
 
     }
@@ -2769,6 +3538,12 @@ bindButton("resume-btn", () => {
 
 });
 
+bindButton("pause-menu-btn", () => {
+
+    returnToMenu();
+
+});
+
 // ============================================
 // REST PERIOD
 // ============================================
@@ -2776,9 +3551,7 @@ bindButton("resume-btn", () => {
 bindButton("rest-continue-btn", () => {
 
     if (currentNight < 5) {
-
         nextNight();
-
     }
 
 });
@@ -2820,7 +3593,10 @@ if (sfxVolume) {
 
     sfxVolume.addEventListener("input", event => {
 
-        localStorage.setItem("gsm-sfx", event.target.value);
+        localStorage.setItem(
+            "gsm-sfx",
+            event.target.value
+        );
 
     });
 
@@ -2830,7 +3606,10 @@ if (musicVolume) {
 
     musicVolume.addEventListener("input", event => {
 
-        localStorage.setItem("gsm-music", event.target.value);
+        localStorage.setItem(
+            "gsm-music",
+            event.target.value
+        );
 
     });
 
@@ -2843,19 +3622,13 @@ if (musicVolume) {
 const playerTwoHUD = document.getElementById("player-two-hud");
 
 if (playerTwoHUD) {
-
     playerTwoHUD.style.display = "none";
-
 }
 
 if (localStorage.getItem("gsm-sfx") && sfxVolume) {
-
     sfxVolume.value = localStorage.getItem("gsm-sfx");
-
 }
 
 if (localStorage.getItem("gsm-music") && musicVolume) {
-
     musicVolume.value = localStorage.getItem("gsm-music");
-
 }

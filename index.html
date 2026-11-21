@@ -7,123 +7,96 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div id="game-container">
-
-        <!-- MAIN MENU -->
         <section id="menu-screen" class="screen active">
             <div class="menu-box">
                 <p class="subtitle">A PHILIPPINE FOLKLORE SURVIVAL GAME</p>
                 <h1>GABI SA <span>MENDEZ</span></h1>
-                <p class="description">
-                    Survive five nights in a village haunted by creatures of Philippine folklore.
-                </p>
-
+                <p class="description">Survive five nights in a village haunted by creatures of Philippine folklore.</p>
                 <button id="start-btn" class="main-button">START GAME</button>
-                <button id="menu-btn">SETTINGS & CONTROLS</button>
-                <button id="exit-btn">EXIT GAME</button> 
+                <button id="menu-btn">SETTINGS &amp; CONTROLS</button>
+                <button id="exit-btn">EXIT GAME</button>
             </div>
         </section>
 
-        <!-- SETTINGS -->
         <section id="settings-screen" class="screen">
             <div class="panel">
-                <h2>SETTINGS & CONTROLS</h2>
-
+                <h2>SETTINGS &amp; CONTROLS</h2>
                 <div class="settings-columns">
                     <div>
                         <h3>Single Player</h3>
                         <p>A / D - Move left and right</p>
-                        <p>W - Jump</p>
-                        <p>S - Move down</p>
+                        <p>W / S - Move up and down</p>
                         <p>T - Shoot</p>
                         <p>Y - Melee attack</p>
                         <p>U - Reload</p>
-                        <p>I - Use healing item</p>
-                        <p>1–5 - Select inventory slot</p>
+                        <p>I - Use healing / special item</p>
+                        <p>O - Open / close backpack</p>
+                        <p>B - Throw Bawang</p>
+                        <p>1–5 - Select quick inventory slot</p>
                     </div>
-
                     <div>
                         <h3>Two Player Co-op</h3>
                         <p><b>Player 1</b></p>
-                        <p>A / D - Move</p>
-                        <p>W - Jump</p>
-                        <p>S - Move down</p>
+                        <p>A / D / W / S - Move</p>
                         <p>T - Shoot</p>
                         <p>Y - Melee</p>
                         <p>U - Reload</p>
-                        <p>I - Heal</p>
-
+                        <p>I - Heal / special item</p>
+                        <p>O - Backpack</p>
+                        <p>B - Throw Bawang</p>
                         <p><b>Player 2</b></p>
-                        <p>Left / Right - Move</p>
-                        <p>Up - Jump</p>
-                        <p>Down - Move down</p>
+                        <p>Arrow Keys - Move</p>
                         <p>Numpad 1 - Shoot</p>
                         <p>Numpad 2 - Melee</p>
                         <p>Numpad 4 - Reload</p>
-                        <p>Numpad 5 - Heal</p>
+                        <p>Numpad 5 - Heal / special item</p>
+                        <p>Numpad 6 - Backpack</p>
+                        <p>Numpad 7 - Throw Bawang</p>
                         <p>E - Hold to revive teammate</p>
                     </div>
                 </div>
-
                 <h3>Audio Settings</h3>
-                <label>
-                    Sound Effects
-                    <input type="range" id="sfx-volume" min="0" max="100" value="60">
-                </label>
-
-                <label>
-                    Music
-                    <input type="range" id="music-volume" min="0" max="100" value="35">
-                </label>
-
+                <label>Sound Effects<input type="range" id="sfx-volume" min="0" max="100" value="60"></label>
+                <label>Music<input type="range" id="music-volume" min="0" max="100" value="35"></label>
                 <button class="main-button back-menu">BACK TO MENU</button>
             </div>
         </section>
 
-        <!-- PLAYER SELECTION -->
         <section id="player-screen" class="screen">
             <div class="panel">
                 <h2>CHOOSE YOUR GAME MODE</h2>
                 <p>How many players will defend Mendez?</p>
-
                 <button id="solo-btn" class="main-button">SINGLE PLAYER</button>
                 <button id="coop-btn" class="main-button">TWO PLAYER CO-OP</button>
                 <button class="back-menu">BACK</button>
             </div>
         </section>
 
-        <!-- GAME -->
         <main id="game-screen" class="hidden">
-
             <header id="top-hud">
                 <div class="hud-box">
                     <small>NIGHT</small>
                     <strong id="night-text">1 / 5</strong>
                 </div>
-
                 <div class="hud-box">
                     <small>OBJECTIVE</small>
                     <strong><span id="kill-count">0</span> / <span id="kill-target">50</span></strong>
                 </div>
-
                 <div class="hud-box">
                     <small>REMAINING ENEMIES</small>
                     <strong id="enemy-count">0</strong>
                 </div>
-
                 <div class="hud-box">
                     <small>REVIVE TOKEN</small>
                     <strong id="revive-count">0</strong>
                 </div>
-
                 <button id="pause-btn">PAUSE</button>
             </header>
 
             <canvas id="game-canvas"></canvas>
 
             <div id="player-hud">
-
                 <div class="player-status" id="player-one-hud">
                     <h3>PLAYER 1</h3>
                     <div class="status-row">
@@ -161,14 +134,12 @@
                     <div class="backpack-label">BACKPACK <span id="p2-bag-count">0 / 10</span></div>
                     <div class="backpack-slots" id="p2-backpack"></div>
                 </div>
-
             </div>
 
             <div id="game-message"></div>
             <div id="notification"></div>
         </main>
 
-        <!-- PAUSE -->
         <section id="pause-screen" class="screen">
             <div class="panel">
                 <h2>GAME PAUSED</h2>
@@ -177,48 +148,40 @@
             </div>
         </section>
 
-        <!-- REST PERIOD -->
         <section id="rest-screen" class="screen">
             <div class="panel">
                 <p class="subtitle">NIGHT CLEARED</p>
                 <h2>PREPARE FOR THE NEXT NIGHT</h2>
-                <p>Use this time to organize your items and prepare for the next wave.</p>
+                <p>Spend your gold in the village shop, organize your items, and prepare for the next wave.</p>
                 <h1 id="rest-timer">30</h1>
                 <p>SECONDS REMAINING</p>
                 <button id="rest-continue-btn" class="main-button">START NEXT NIGHT NOW</button>
             </div>
         </section>
 
-        <!-- WIN -->
         <section id="win-screen" class="screen">
             <div class="panel results-panel">
                 <p class="subtitle">THE SUN HAS FINALLY RISEN</p>
                 <h1>MENDEZ <span>SURVIVED!</span></h1>
                 <h2>FINAL SURVIVAL STATISTICS</h2>
-
                 <div id="final-stats"></div>
-
                 <button id="win-menu-btn" class="main-button">BACK TO MENU</button>
             </div>
         </section>
 
-        <!-- DEATH -->
         <section id="death-screen" class="screen">
             <div class="panel">
                 <p class="subtitle">THE NIGHT HAS CLAIMED YOU</p>
                 <h1>YOU <span>DIED</span></h1>
                 <p id="death-description">Your survival attempt has ended.</p>
-
                 <button id="retry-btn" class="main-button">RETRY NIGHT</button>
                 <button id="death-menu-btn">BACK TO MENU</button>
             </div>
         </section>
 
-        <!-- LOADING / ERROR -->
         <div id="loading-screen" class="hidden">
             <h2>LOADING GABI SA MENDEZ...</h2>
         </div>
-
     </div>
 
     <script src="game.js"></script>
