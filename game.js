@@ -1,3 +1,4 @@
+
 // ============================================
 // GABI SA MENDEZ
 // 2D PHILIPPINE FOLKLORE SURVIVAL GAME
@@ -195,6 +196,8 @@ let buildings = [];
 let trees = [];
 let obstacles = [];
 
+let reviveProgress = 0;
+
 // ============================================
 // PLAYER CREATION
 // ============================================
@@ -222,10 +225,10 @@ function createPlayer(id, x, color) {
 
         speed: 210,
 
-        velocityY: 0,
-        jumping: false,
-
+        // PLAYER FACING DIRECTION
         facing: -1,
+        facingX: -1,
+        facingY: 0,
 
         downed: false,
 
@@ -254,6 +257,8 @@ function createPlayer(id, x, color) {
         ],
 
         selectedSlot: 0,
+
+        inventoryOpen: false,
 
         attackCooldown: 0,
         meleeCooldown: 0,
@@ -350,6 +355,7 @@ function resizeCanvas() {
 }
 
 window.addEventListener("resize", resizeCanvas);
+
 resizeCanvas();
 
 // ============================================
@@ -358,16 +364,16 @@ resizeCanvas();
 
 const screenIds = [
     "menu-screen",
-    "instructions-screen",
     "settings-screen",
+    "player-screen",
     "pause-screen",
-    "victory-screen",
-    "died-screen"
+    "rest-screen",
+    "win-screen",
+    "death-screen"
 ];
 
 function showScreen(id) {
 
-    // Hide all menu and overlay screens
     screenIds.forEach(screenId => {
 
         const screen = document.getElementById(screenId);
@@ -378,20 +384,24 @@ function showScreen(id) {
 
     });
 
-    // Hide the game screen first
     const gameScreen = document.getElementById("game-screen");
 
     if (gameScreen) {
+
+        gameScreen.classList.add("hidden");
         gameScreen.classList.remove("visible");
-        gameScreen.style.display = "none";
+        gameScreen.style.display = "";
+
     }
 
-    // Display the selected screen
     if (id === "game-screen" || id === null) {
 
         if (gameScreen) {
+
+            gameScreen.classList.remove("hidden");
             gameScreen.classList.add("visible");
             gameScreen.style.display = "block";
+
         }
 
     } else {
@@ -399,14 +409,23 @@ function showScreen(id) {
         const selectedScreen = document.getElementById(id);
 
         if (selectedScreen) {
+
+            selectedScreen.classList.remove("hidden");
             selectedScreen.classList.add("active");
+
+        } else {
+
+            console.error("Screen not found:", id);
+
         }
 
     }
 }
 
 function openGame() {
+
     showScreen("game-screen");
+
 }
 
 function returnToMenu() {
@@ -415,9 +434,16 @@ function returnToMenu() {
     gamePaused = false;
     gameOver = false;
 
+    keys = {};
+
     clearInterval(restInterval);
+    clearTimeout(notificationTimer);
+
+    reloadTimers.forEach(timer => clearTimeout(timer));
+    reloadTimers = [];
 
     showScreen("menu-screen");
+
 }
 
 // ============================================
@@ -437,6 +463,15 @@ function startGame(mode) {
     pickups = [];
 
     players = [];
+
+    keys = {};
+
+    reviveProgress = 0;
+
+    clearInterval(restInterval);
+
+    reloadTimers.forEach(timer => clearTimeout(timer));
+    reloadTimers = [];
 
     players.push(
         createPlayer(1, mapWidth / 2 - 45, "#416f91")
@@ -466,6 +501,7 @@ function startGame(mode) {
     startNight(1);
 
     updateHUD();
+
 }
 
 // ============================================
@@ -482,10 +518,18 @@ function startNight(night) {
     enemies = [];
     bullets = [];
 
+    reviveProgress = 0;
+
+    document.getElementById("game-message").textContent = "";
+
     if (night === 1) {
+
         reviveTokens = 0;
+
     } else {
+
         reviveTokens = 1;
+
     }
 
     spawnInterval = Math.max(0.35, 1.5 - (night - 1) * 0.2);
@@ -501,6 +545,7 @@ function startNight(night) {
     showNotification("NIGHT " + night + " HAS BEGUN!");
 
     updateHUD();
+
 }
 
 // ============================================
@@ -528,6 +573,7 @@ function spawnInitialLoot() {
         const type = list[Math.floor(Math.random() * list.length)];
 
         spawnPickup(type);
+
     }
 }
 
@@ -542,6 +588,7 @@ function spawnPickup(type) {
         y: y,
         size: 16
     });
+
 }
 
 // ============================================
@@ -564,14 +611,20 @@ function spawnEnemy() {
     let y;
 
     if (side === 0) {
+
         x = Math.random() * mapWidth;
         y = 20;
+
     } else if (side === 1) {
+
         x = 20;
         y = Math.random() * 450;
+
     } else {
+
         x = mapWidth - 20;
         y = Math.random() * 450;
+
     }
 
     enemies.push({
@@ -593,7 +646,9 @@ function spawnEnemy() {
         attackCooldown: 0,
 
         alive: true
+
     });
+
 }
 
 // ============================================
@@ -607,71 +662,81 @@ function movePlayer(player, deltaTime) {
     let dx = 0;
     let dy = 0;
 
+    // PLAYER 1 MOVEMENT
     if (player.id === 1) {
 
         if (keys["KeyA"]) dx -= 1;
         if (keys["KeyD"]) dx += 1;
+        if (keys["KeyW"]) dy -= 1;
         if (keys["KeyS"]) dy += 1;
 
-        if (keys["KeyW"] && !player.jumping) {
-            jumpPlayer(player);
-        }
+    }
 
-    } else {
+    // PLAYER 2 MOVEMENT
+    else {
 
         if (keys["ArrowLeft"]) dx -= 1;
         if (keys["ArrowRight"]) dx += 1;
+        if (keys["ArrowUp"]) dy -= 1;
         if (keys["ArrowDown"]) dy += 1;
 
-        if (keys["ArrowUp"] && !player.jumping) {
-            jumpPlayer(player);
-        }
-
     }
 
-    if (dx !== 0) {
-        player.facing = dx > 0 ? 1 : -1;
-    }
-
+    // UPDATE FACING DIRECTION
     if (dx !== 0 || dy !== 0) {
 
         const length = Math.sqrt(dx * dx + dy * dy);
 
+        player.facingX = dx / length;
+        player.facingY = dy / length;
+
+        if (dx !== 0) {
+            player.facing = dx > 0 ? 1 : -1;
+        }
+
+        // NORMALIZE MOVEMENT
         dx /= length;
         dy /= length;
 
         player.x += dx * player.speed * deltaTime;
         player.y += dy * player.speed * deltaTime;
 
-        player.energy = Math.max(0, player.energy - 5 * deltaTime);
+        player.energy = Math.max(
+            0,
+            player.energy - 5 * deltaTime
+        );
 
     } else {
 
-        player.energy = Math.min(200, player.energy + 8 * deltaTime);
+        player.energy = Math.min(
+            player.maxEnergy,
+            player.energy + 8 * deltaTime
+        );
 
     }
 
-    player.x = Math.max(20, Math.min(mapWidth - 20, player.x));
-    player.y = Math.max(20, Math.min(mapHeight - 20, player.y));
+    // MAP BOUNDARIES
+    player.x = Math.max(
+        20,
+        Math.min(mapWidth - 20, player.x)
+    );
 
-    player.attackCooldown = Math.max(0, player.attackCooldown - deltaTime);
-    player.meleeCooldown = Math.max(0, player.meleeCooldown - deltaTime);
-}
+    player.y = Math.max(
+        20,
+        Math.min(mapHeight - 20, player.y)
+    );
 
-// ============================================
-// JUMPING
-// ============================================
+    // COOLDOWNS
+    player.attackCooldown = Math.max(
+        0,
+        player.attackCooldown - deltaTime
+    );
 
-function jumpPlayer(player) {
+    player.meleeCooldown = Math.max(
+        0,
+        player.meleeCooldown - deltaTime
+    );
 
-    if (player.downed) return;
-
-    if (player.energy < 10) return;
-
-    player.jumping = true;
-    player.velocityY = -12;
-
-    player.energy -= 10;
 }
 
 // ============================================
@@ -685,15 +750,19 @@ function shoot(player) {
     const weapon = itemTypes[player.weapon];
 
     if (!weapon || weapon.type !== "gun") {
+
         showNotification("Equip a gun first!");
         return;
+
     }
 
     if (player.reloading) return;
 
     if (player.magazine[player.weapon] <= 0) {
-        showNotification("OUT OF BULLETS! PRESS R TO RELOAD.");
+
+        showNotification("OUT OF BULLETS! PRESS YOUR RELOAD KEY.");
         return;
+
     }
 
     if (player.attackCooldown > 0) return;
@@ -704,20 +773,18 @@ function shoot(player) {
 
     player.stats.shotsFired++;
 
-    let target = findNearestEnemy(player);
+    // GET THE PLAYER'S FACING DIRECTION
+    const directionX = player.facingX;
+    const directionY = player.facingY;
 
-    let direction = player.facing;
-
-    if (target) {
-        direction = target.x >= player.x ? 1 : -1;
-    }
-
+    // CREATE BULLET IN THE FACING DIRECTION
     bullets.push({
 
-        x: player.x + direction * 20,
-        y: player.y - 8,
+        x: player.x + directionX * 20,
+        y: player.y - 8 + directionY * 20,
 
-        direction: direction,
+        directionX: directionX,
+        directionY: directionY,
 
         speed: 550,
 
@@ -725,10 +792,14 @@ function shoot(player) {
 
         owner: player.id,
 
-        weapon: player.weapon
+        weapon: player.weapon,
+
+        hit: false
+
     });
 
     updateHUD();
+
 }
 
 // ============================================
@@ -748,13 +819,16 @@ function findNearestEnemy(player) {
         );
 
         if (distance < nearestDistance) {
+
             nearestDistance = distance;
             nearest = enemy;
+
         }
 
     });
 
     return nearest;
+
 }
 
 // ============================================
@@ -772,8 +846,10 @@ function meleeAttack(player) {
     const weapon = itemTypes[player.weapon];
 
     if (!weapon || weapon.type !== "melee") {
+
         showNotification("Equip a melee weapon first!");
         return;
+
     }
 
     let target = null;
@@ -787,8 +863,10 @@ function meleeAttack(player) {
         );
 
         if (distance < closestDistance) {
+
             closestDistance = distance;
             target = enemy;
+
         }
 
     });
@@ -807,6 +885,7 @@ function meleeAttack(player) {
         showNotification("No enemy within melee range.");
 
     }
+
 }
 
 // ============================================
@@ -832,9 +911,13 @@ function damageEnemy(enemy, damage, playerId, attackType) {
             player.stats.totalKills++;
 
             if (attackType === "melee") {
+
                 player.stats.meleeKills++;
+
             } else {
+
                 player.stats.gunKills++;
+
             }
 
         }
@@ -846,7 +929,9 @@ function damageEnemy(enemy, damage, playerId, attackType) {
         if (totalKills >= nightTargets[currentNight - 1]) {
             completeNight();
         }
+
     }
+
 }
 
 // ============================================
@@ -855,10 +940,13 @@ function damageEnemy(enemy, damage, playerId, attackType) {
 
 function updateBullets(deltaTime) {
 
-    bullets.forEach((bullet, index) => {
+    bullets.forEach(bullet => {
 
-        bullet.x += bullet.direction * bullet.speed * deltaTime;
+        // MOVE BULLET IN ITS FIRING DIRECTION
+        bullet.x += bullet.directionX * bullet.speed * deltaTime;
+        bullet.y += bullet.directionY * bullet.speed * deltaTime;
 
+        // CHECK ENEMY COLLISION
         const target = enemies.find(enemy => {
 
             const distance = Math.hypot(
@@ -867,6 +955,7 @@ function updateBullets(deltaTime) {
             );
 
             return distance < enemy.size + 8;
+
         });
 
         if (target) {
@@ -882,13 +971,22 @@ function updateBullets(deltaTime) {
 
         }
 
-        if (bullet.x < 0 || bullet.x > mapWidth) {
+        // REMOVE BULLETS OUTSIDE THE MAP
+        if (
+            bullet.x < 0 ||
+            bullet.x > mapWidth ||
+            bullet.y < 0 ||
+            bullet.y > mapHeight
+        ) {
+
             bullet.hit = true;
+
         }
 
     });
 
-    bullets = bullets.filter(b => !b.hit);
+    bullets = bullets.filter(bullet => !bullet.hit);
+
 }
 
 // ============================================
@@ -920,6 +1018,7 @@ function updateEnemies(deltaTime) {
             );
 
             target = distanceOne < distanceTwo ? targets[0] : targets[1];
+
         }
 
         const dx = target.x - enemy.x;
@@ -943,9 +1042,11 @@ function updateEnemies(deltaTime) {
                 enemy.attackCooldown = 1.1;
 
             }
+
         }
 
     });
+
 }
 
 // ============================================
@@ -987,32 +1088,53 @@ function hurtPlayer(player, damage) {
             endGame();
 
         }
+
     }
 
     updateHUD();
+
 }
 
 // ============================================
 // CO-OP REVIVAL
 // ============================================
 
-let reviveProgress = 0;
-
 function updateRevival(deltaTime) {
 
     if (gameMode !== "coop") return;
 
     if (!keys["KeyE"]) {
+
         reviveProgress = 0;
+
+        document.getElementById("game-message").textContent = "";
+
         return;
+
     }
 
-    if (reviveTokens <= 0) return;
+    if (reviveTokens <= 0) {
+
+        reviveProgress = 0;
+
+        document.getElementById("game-message").textContent = "";
+
+        return;
+
+    }
 
     const helper = players.find(p => !p.downed);
     const downed = players.find(p => p.downed);
 
-    if (!helper || !downed) return;
+    if (!helper || !downed) {
+
+        reviveProgress = 0;
+
+        document.getElementById("game-message").textContent = "";
+
+        return;
+
+    }
 
     const distance = Math.hypot(
         helper.x - downed.x,
@@ -1020,17 +1142,27 @@ function updateRevival(deltaTime) {
     );
 
     if (distance > 65) {
+
         reviveProgress = 0;
-        showNotification("MOVE CLOSER TO REVIVE!");
+
+        document.getElementById("game-message").textContent = "";
+
         return;
+
     }
 
+    // REVIVE TAKES 3 SECONDS
     reviveProgress += deltaTime;
 
-    document.getElementById("game-message").textContent =
-        "REVIVING: " + Math.floor(reviveProgress / 5 * 100) + "%";
+    const percentage = Math.min(
+        100,
+        Math.floor(reviveProgress / 3 * 100)
+    );
 
-    if (reviveProgress >= 5) {
+    document.getElementById("game-message").textContent =
+        "REVIVING: " + percentage + "%";
+
+    if (reviveProgress >= 3) {
 
         downed.downed = false;
         downed.health = 50;
@@ -1046,7 +1178,9 @@ function updateRevival(deltaTime) {
         showNotification("PLAYER " + downed.id + " HAS BEEN REVIVED!");
 
         updateHUD();
+
     }
+
 }
 
 // ============================================
@@ -1058,6 +1192,7 @@ function checkGameOver() {
     if (players.every(p => p.downed)) {
         endGame();
     }
+
 }
 
 // ============================================
@@ -1077,8 +1212,10 @@ function reload(player) {
     if (player.magazine[player.weapon] >= weapon.magazine) return;
 
     if (player.reserveAmmo <= 0) {
+
         showNotification("NO EXTRA BULLETS!");
         return;
+
     }
 
     player.reloading = true;
@@ -1089,6 +1226,15 @@ function reload(player) {
     const timer = setTimeout(() => {
 
         if (!players.includes(player)) return;
+
+        if (player.downed) {
+
+            player.reloading = false;
+            player.reloadTime = 0;
+
+            return;
+
+        }
 
         const needed = weapon.magazine - player.magazine[player.weapon];
 
@@ -1107,6 +1253,7 @@ function reload(player) {
     }, weapon.reloadTime * 1000);
 
     reloadTimers.push(timer);
+
 }
 
 // ============================================
@@ -1118,8 +1265,10 @@ function useHeal(player) {
     if (player.downed) return;
 
     if (player.health >= player.maxHealth) {
+
         showNotification("YOUR HEALTH IS ALREADY FULL.");
         return;
+
     }
 
     let index = player.inventory.findIndex(item =>
@@ -1139,8 +1288,10 @@ function useHeal(player) {
     }
 
     if (index === -1) {
+
         showNotification("NO HEALING ITEMS AVAILABLE.");
         return;
+
     }
 
     const item = source.splice(index, 1)[0];
@@ -1155,6 +1306,7 @@ function useHeal(player) {
     showNotification(itemTypes[item].name + " USED!");
 
     updateHUD();
+
 }
 
 // ============================================
@@ -1167,7 +1319,10 @@ function updatePickups() {
 
         if (player.downed) return;
 
-        pickups.forEach((pickup, index) => {
+        // LOOP BACKWARDS SO REMOVED ITEMS DO NOT SKIP THE NEXT PICKUP
+        for (let index = pickups.length - 1; index >= 0; index--) {
+
+            const pickup = pickups[index];
 
             const distance = Math.hypot(
                 player.x - pickup.x,
@@ -1180,7 +1335,7 @@ function updatePickups() {
 
             }
 
-        });
+        }
 
     });
 
@@ -1194,6 +1349,8 @@ function collectItem(player, index) {
 
     const type = pickup.type;
     const item = itemTypes[type];
+
+    if (!item) return;
 
     if (type === "ammo") {
 
@@ -1223,8 +1380,11 @@ function collectItem(player, index) {
         } else {
 
             showNotification("YOUR INVENTORY IS FULL!");
+
             return;
+
         }
+
     }
 
     pickups.splice(index, 1);
@@ -1232,6 +1392,7 @@ function collectItem(player, index) {
     showNotification(item.name + " COLLECTED!");
 
     updateHUD();
+
 }
 
 // ============================================
@@ -1248,8 +1409,10 @@ function selectSlot(player, number) {
 
     const item = player.inventory[index];
 
-    if (itemTypes[item].type === "gun" ||
-        itemTypes[item].type === "melee") {
+    if (
+        itemTypes[item].type === "gun" ||
+        itemTypes[item].type === "melee"
+    ) {
 
         player.weapon = item;
 
@@ -1260,6 +1423,7 @@ function selectSlot(player, number) {
     }
 
     updateHUD();
+
 }
 
 // ============================================
@@ -1272,6 +1436,8 @@ function renderInventory(player) {
 
     const slots = document.getElementById(prefix + "-slots");
     const backpack = document.getElementById(prefix + "-backpack");
+
+    if (!slots || !backpack) return;
 
     slots.innerHTML = "";
     backpack.innerHTML = "";
@@ -1301,6 +1467,7 @@ function renderInventory(player) {
         }
 
         slots.appendChild(slot);
+
     }
 
     for (let i = 0; i < 10; i++) {
@@ -1316,11 +1483,308 @@ function renderInventory(player) {
             : "<b>·</b>EMPTY";
 
         backpack.appendChild(slot);
+
     }
 
-    document.getElementById(prefix + "-bag-count").textContent =
-        player.backpack.length + " / 10";
+    const bagCount = document.getElementById(prefix + "-bag-count");
+
+    if (bagCount) {
+
+        bagCount.textContent =
+            player.backpack.length + " / 10";
+
+    }
+
 }
+
+// ============================================
+// INVENTORY POP-UP POSITION
+// ============================================
+
+function getInventoryPopupBounds(player) {
+
+    const popupWidth = 210;
+
+    const padding = 8;
+
+    const backpackCount = Math.max(1, player.backpack.length);
+
+    const popupHeight =
+        30 +
+        (5 * 19) +
+        25 +
+        (backpackCount * 19) +
+        15;
+
+    let popupX = player.x - popupWidth / 2;
+
+    let popupY = player.y - popupHeight - 35;
+
+    popupX = Math.max(
+        padding,
+        Math.min(mapWidth - popupWidth - padding, popupX)
+    );
+
+    if (popupY < padding) {
+
+        popupY = player.y + 45;
+
+    }
+
+    return {
+        x: popupX,
+        y: popupY,
+        width: popupWidth,
+        height: popupHeight
+    };
+
+}
+
+// ============================================
+// DRAW INVENTORY POP-UP
+// ============================================
+
+function drawInventoryPopup(player) {
+
+    if (!player.inventoryOpen) return;
+
+    const bounds = getInventoryPopupBounds(player);
+
+    const popupX = bounds.x;
+    const popupY = bounds.y;
+    const popupWidth = bounds.width;
+    const popupHeight = bounds.height;
+
+    ctx.save();
+
+    // POP-UP SHADOW
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+
+    ctx.fillRect(
+        popupX + 5,
+        popupY + 5,
+        popupWidth,
+        popupHeight
+    );
+
+    // POP-UP BACKGROUND
+    ctx.fillStyle = "#20251f";
+
+    ctx.fillRect(
+        popupX,
+        popupY,
+        popupWidth,
+        popupHeight
+    );
+
+    // POP-UP BORDER
+    ctx.strokeStyle = "#d6b56d";
+    ctx.lineWidth = 3;
+
+    ctx.strokeRect(
+        popupX,
+        popupY,
+        popupWidth,
+        popupHeight
+    );
+
+    // HEADER
+    ctx.fillStyle = "#493b2b";
+
+    ctx.fillRect(
+        popupX + 2,
+        popupY + 2,
+        popupWidth - 4,
+        27
+    );
+
+    ctx.fillStyle = "#f5d58a";
+
+    ctx.font = "bold 13px Arial";
+    ctx.textAlign = "left";
+
+    ctx.fillText(
+        "PLAYER " + player.id + " INVENTORY",
+        popupX + 10,
+        popupY + 19
+    );
+
+    // CLOSE BUTTON
+    const closeX = popupX + popupWidth - 25;
+    const closeY = popupY + 6;
+
+    ctx.fillStyle = "#a83232";
+
+    ctx.fillRect(
+        closeX,
+        closeY,
+        18,
+        17
+    );
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(closeX + 4, closeY + 4);
+    ctx.lineTo(closeX + 14, closeY + 13);
+
+    ctx.moveTo(closeX + 14, closeY + 4);
+    ctx.lineTo(closeX + 4, closeY + 13);
+
+    ctx.stroke();
+
+    // QUICK INVENTORY
+    let currentY = popupY + 46;
+
+    ctx.fillStyle = "#f5d58a";
+    ctx.font = "bold 11px Arial";
+
+    ctx.fillText(
+        "QUICK INVENTORY",
+        popupX + 10,
+        currentY
+    );
+
+    currentY += 18;
+
+    for (let i = 0; i < 5; i++) {
+
+        const item = player.inventory[i];
+
+        const rowY = currentY;
+
+        if (player.selectedSlot === i) {
+
+            ctx.fillStyle = "rgba(214, 181, 109, 0.25)";
+
+            ctx.fillRect(
+                popupX + 7,
+                rowY - 12,
+                popupWidth - 14,
+                17
+            );
+
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "11px Arial";
+
+        let itemName = "EMPTY";
+
+        if (item && itemTypes[item]) {
+
+            itemName = itemTypes[item].icon + " " + itemTypes[item].name;
+
+        }
+
+        ctx.fillText(
+            (i + 1) + ". " + itemName,
+            popupX + 12,
+            rowY
+        );
+
+        currentY += 19;
+
+    }
+
+    // BACKPACK SECTION
+    currentY += 5;
+
+    ctx.fillStyle = "#f5d58a";
+    ctx.font = "bold 11px Arial";
+
+    ctx.fillText(
+        "BACKPACK (" + player.backpack.length + "/10)",
+        popupX + 10,
+        currentY
+    );
+
+    currentY += 19;
+
+    if (player.backpack.length === 0) {
+
+        ctx.fillStyle = "#aaaaaa";
+        ctx.font = "11px Arial";
+
+        ctx.fillText(
+            "No items stored.",
+            popupX + 12,
+            currentY
+        );
+
+    } else {
+
+        player.backpack.forEach(item => {
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "11px Arial";
+
+            const itemName = itemTypes[item]
+                ? itemTypes[item].icon + " " + itemTypes[item].name
+                : "Unknown Item";
+
+            ctx.fillText(
+                "- " + itemName,
+                popupX + 12,
+                currentY
+            );
+
+            currentY += 19;
+
+        });
+
+    }
+
+    ctx.restore();
+
+}
+
+// ============================================
+// CLOSE INVENTORY POP-UP
+// ============================================
+
+canvas.addEventListener("click", function(event) {
+
+    if (!gameRunning || gamePaused) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    const scale = Math.min(
+        rect.width / mapWidth,
+        rect.height / mapHeight
+    );
+
+    const offsetX = (rect.width - mapWidth * scale) / 2;
+    const offsetY = (rect.height - mapHeight * scale) / 2;
+
+    const mouseX = (event.clientX - rect.left - offsetX) / scale;
+    const mouseY = (event.clientY - rect.top - offsetY) / scale;
+
+    players.forEach(player => {
+
+        if (!player.inventoryOpen) return;
+
+        const bounds = getInventoryPopupBounds(player);
+
+        const closeX = bounds.x + bounds.width - 25;
+        const closeY = bounds.y + 6;
+
+        if (
+            mouseX >= closeX &&
+            mouseX <= closeX + 18 &&
+            mouseY >= closeY &&
+            mouseY <= closeY + 17
+        ) {
+
+            player.inventoryOpen = false;
+
+        }
+
+    });
+
+});
 
 // ============================================
 // UPDATE HUD
@@ -1332,45 +1796,80 @@ function updateHUD() {
 
         const prefix = "p" + player.id;
 
-        document.getElementById(prefix + "-health-bar").style.width =
-            player.health + "%";
+        const healthBar = document.getElementById(prefix + "-health-bar");
+        const healthText = document.getElementById(prefix + "-health-text");
 
-        document.getElementById(prefix + "-health-text").textContent =
-            Math.ceil(player.health);
+        const energyBar = document.getElementById(prefix + "-energy-bar");
+        const energyText = document.getElementById(prefix + "-energy-text");
 
-        document.getElementById(prefix + "-energy-bar").style.width =
-            (player.energy / player.maxEnergy * 100) + "%";
+        const weaponText = document.getElementById(prefix + "-weapon");
+        const statusText = document.getElementById(prefix + "-status");
 
-        document.getElementById(prefix + "-energy-text").textContent =
-            Math.ceil(player.energy);
+        if (healthBar) {
+            healthBar.style.width = player.health + "%";
+        }
 
-        document.getElementById(prefix + "-weapon").textContent =
-            itemTypes[player.weapon].name;
+        if (healthText) {
+            healthText.textContent = Math.ceil(player.health);
+        }
 
-        document.getElementById(prefix + "-status").textContent =
-            player.downed ? "DOWNED" : "ALIVE";
+        if (energyBar) {
+            energyBar.style.width =
+                (player.energy / player.maxEnergy * 100) + "%";
+        }
+
+        if (energyText) {
+            energyText.textContent = Math.ceil(player.energy);
+        }
+
+        if (weaponText) {
+            weaponText.textContent = itemTypes[player.weapon].name;
+        }
+
+        if (statusText) {
+            statusText.textContent = player.downed ? "DOWNED" : "ALIVE";
+        }
 
         renderInventory(player);
 
     });
 
-    document.getElementById("revive-count").textContent = reviveTokens;
+    const reviveCount = document.getElementById("revive-count");
+    const enemyCount = document.getElementById("enemy-count");
 
-    document.getElementById("enemy-count").textContent = enemies.length;
+    if (reviveCount) {
+        reviveCount.textContent = reviveTokens;
+    }
+
+    if (enemyCount) {
+        enemyCount.textContent = enemies.length;
+    }
+
+    const playerOneHUD = document.getElementById("player-one-hud");
+    const playerTwoHUD = document.getElementById("player-two-hud");
 
     if (gameMode === "solo") {
 
-        document.getElementById("player-two-hud").style.display = "none";
+        if (playerTwoHUD) {
+            playerTwoHUD.style.display = "none";
+        }
 
-        document.getElementById("player-one-hud").style.margin = "auto";
+        if (playerOneHUD) {
+            playerOneHUD.style.margin = "auto";
+        }
 
     } else {
 
-        document.getElementById("player-two-hud").style.display = "block";
+        if (playerTwoHUD) {
+            playerTwoHUD.style.display = "block";
+        }
 
-        document.getElementById("player-one-hud").style.margin = "0";
+        if (playerOneHUD) {
+            playerOneHUD.style.margin = "0";
+        }
 
     }
+
 }
 
 // ============================================
@@ -1392,6 +1891,7 @@ function completeNight() {
         startRestPeriod();
 
     }
+
 }
 
 // ============================================
@@ -1405,6 +1905,8 @@ function startRestPeriod() {
     showScreen("rest-screen");
 
     document.getElementById("rest-timer").textContent = restTimer;
+
+    clearInterval(restInterval);
 
     restInterval = setInterval(() => {
 
@@ -1421,6 +1923,7 @@ function startRestPeriod() {
         }
 
     }, 1000);
+
 }
 
 function nextNight() {
@@ -1436,6 +1939,8 @@ function nextNight() {
 
         player.downed = false;
 
+        player.inventoryOpen = false;
+
     });
 
     startNight(currentNight);
@@ -1445,6 +1950,7 @@ function nextNight() {
     gameRunning = true;
 
     updateHUD();
+
 }
 
 // ============================================
@@ -1480,6 +1986,7 @@ function showWinScreen() {
     });
 
     showScreen("win-screen");
+
 }
 
 // ============================================
@@ -1487,6 +1994,8 @@ function showWinScreen() {
 // ============================================
 
 function endGame() {
+
+    if (gameOver) return;
 
     gameRunning = false;
     gameOver = true;
@@ -1498,6 +2007,7 @@ function endGame() {
         ". Your total kills: " + totalKills + ".";
 
     showScreen("death-screen");
+
 }
 
 // ============================================
@@ -1508,6 +2018,13 @@ function retryNight() {
 
     enemies = [];
     bullets = [];
+
+    keys = {};
+
+    reviveProgress = 0;
+
+    reloadTimers.forEach(timer => clearTimeout(timer));
+    reloadTimers = [];
 
     players.forEach(player => {
 
@@ -1528,6 +2045,9 @@ function retryNight() {
         };
 
         player.reloading = false;
+        player.reloadTime = 0;
+
+        player.inventoryOpen = false;
 
     });
 
@@ -1536,8 +2056,11 @@ function retryNight() {
     showScreen(null);
 
     gameRunning = true;
+    gamePaused = false;
+    gameOver = false;
 
     updateHUD();
+
 }
 
 // ============================================
@@ -1547,6 +2070,8 @@ function retryNight() {
 function showNotification(message) {
 
     const notification = document.getElementById("notification");
+
+    if (!notification) return;
 
     notification.textContent = message;
 
@@ -1559,6 +2084,7 @@ function showNotification(message) {
         notification.classList.remove("show");
 
     }, 1800);
+
 }
 
 // ============================================
@@ -1570,8 +2096,7 @@ function drawMap() {
     ctx.fillStyle = "#354437";
     ctx.fillRect(0, 0, mapWidth, mapHeight);
 
-    // Ground details
-
+    // GROUND DETAILS
     for (let i = 0; i < 160; i++) {
 
         const x = (i * 83) % mapWidth;
@@ -1583,8 +2108,7 @@ function drawMap() {
 
     }
 
-    // Village road
-
+    // VILLAGE ROAD
     ctx.fillStyle = "#776b56";
     ctx.fillRect(0, 470, mapWidth, 90);
 
@@ -1594,23 +2118,31 @@ function drawMap() {
         ctx.fillRect(x, 512, 35, 3);
     }
 
-    // Houses
-
+    // HOUSES
     buildings.forEach(house => {
 
         ctx.fillStyle = house.color;
-        ctx.fillRect(house.x, house.y, house.width, house.height);
+
+        ctx.fillRect(
+            house.x,
+            house.y,
+            house.width,
+            house.height
+        );
 
         ctx.fillStyle = "#45352d";
 
         ctx.beginPath();
+
         ctx.moveTo(house.x - 8, house.y);
         ctx.lineTo(house.x + house.width / 2, house.y - 30);
         ctx.lineTo(house.x + house.width + 8, house.y);
+
         ctx.closePath();
         ctx.fill();
 
         ctx.fillStyle = "#332c24";
+
         ctx.fillRect(
             house.x + house.width / 2 - 10,
             house.y + house.height - 28,
@@ -1619,12 +2151,17 @@ function drawMap() {
         );
 
         ctx.fillStyle = "#c3a36b";
-        ctx.fillRect(house.x + 12, house.y + 15, 18, 15);
+
+        ctx.fillRect(
+            house.x + 12,
+            house.y + 15,
+            18,
+            15
+        );
 
     });
 
-    // Trees
-
+    // TREES
     trees.forEach(tree => {
 
         ctx.fillStyle = "#49372b";
@@ -1639,6 +2176,7 @@ function drawMap() {
         ctx.fillStyle = "#1e3929";
 
         ctx.beginPath();
+
         ctx.arc(
             tree.x,
             tree.y,
@@ -1651,8 +2189,7 @@ function drawMap() {
 
     });
 
-    // Obstacles
-
+    // OBSTACLES
     obstacles.forEach(obstacle => {
 
         ctx.fillStyle = "#5d5a4d";
@@ -1666,8 +2203,7 @@ function drawMap() {
 
     });
 
-    // Player starting area
-
+    // PLAYER STARTING AREA
     ctx.fillStyle = "rgba(190, 150, 75, .15)";
 
     ctx.fillRect(
@@ -1678,6 +2214,7 @@ function drawMap() {
     );
 
     ctx.strokeStyle = "#d1ad62";
+
     ctx.strokeRect(
         mapWidth / 2 - 140,
         mapHeight - 175,
@@ -1694,6 +2231,7 @@ function drawMap() {
         mapWidth / 2,
         mapHeight - 155
     );
+
 }
 
 // ============================================
@@ -1707,14 +2245,14 @@ function drawPlayers() {
         ctx.save();
 
         if (player.downed) {
-            ctx.globalAlpha = .35;
+            ctx.globalAlpha = 0.35;
         }
 
-        // Shadow
-
+        // SHADOW
         ctx.fillStyle = "#111";
 
         ctx.beginPath();
+
         ctx.ellipse(
             player.x,
             player.y + 18,
@@ -1727,8 +2265,7 @@ function drawPlayers() {
 
         ctx.fill();
 
-        // Body
-
+        // BODY
         ctx.fillStyle = player.color;
 
         ctx.fillRect(
@@ -1738,11 +2275,11 @@ function drawPlayers() {
             29
         );
 
-        // Head
-
+        // HEAD
         ctx.fillStyle = "#c28d6a";
 
         ctx.beginPath();
+
         ctx.arc(
             player.x,
             player.y - 22,
@@ -1753,19 +2290,22 @@ function drawPlayers() {
 
         ctx.fill();
 
-        // Face direction
-
+        // FACE DIRECTION
         ctx.fillStyle = "#171717";
 
-        ctx.fillRect(
-            player.x + player.facing * 4,
-            player.y - 24,
-            3,
-            3
+        ctx.beginPath();
+
+        ctx.arc(
+            player.x + player.facingX * 5,
+            player.y - 22 + player.facingY * 5,
+            2,
+            0,
+            Math.PI * 2
         );
 
-        // Player number
+        ctx.fill();
 
+        // PLAYER NUMBER
         ctx.fillStyle = "white";
         ctx.font = "bold 10px Arial";
         ctx.textAlign = "center";
@@ -1776,9 +2316,13 @@ function drawPlayers() {
             player.y + 38
         );
 
+        // INVENTORY POP-UP
+        drawInventoryPopup(player);
+
         ctx.restore();
 
     });
+
 }
 
 // ============================================
@@ -1789,8 +2333,7 @@ function drawEnemies() {
 
     enemies.forEach(enemy => {
 
-        // Body
-
+        // BODY
         ctx.fillStyle = enemy.color;
 
         ctx.beginPath();
@@ -1805,15 +2348,13 @@ function drawEnemies() {
 
         ctx.fill();
 
-        // Eyes
-
+        // EYES
         ctx.fillStyle = "#ff2b24";
 
         ctx.fillRect(enemy.x - 7, enemy.y - 5, 4, 4);
         ctx.fillRect(enemy.x + 3, enemy.y - 5, 4, 4);
 
-        // Health bar background
-
+        // HEALTH BAR BACKGROUND
         const barWidth = enemy.size * 2;
 
         ctx.fillStyle = "#211c1b";
@@ -1825,8 +2366,7 @@ function drawEnemies() {
             5
         );
 
-        // Health bar
-
+        // HEALTH BAR
         ctx.fillStyle = "#c93632";
 
         ctx.fillRect(
@@ -1836,8 +2376,7 @@ function drawEnemies() {
             5
         );
 
-        // Enemy name
-
+        // ENEMY NAME
         ctx.fillStyle = "#fff";
         ctx.font = "9px Arial";
         ctx.textAlign = "center";
@@ -1849,6 +2388,7 @@ function drawEnemies() {
         );
 
     });
+
 }
 
 // ============================================
@@ -1881,6 +2421,7 @@ function drawPickups() {
         );
 
     });
+
 }
 
 // ============================================
@@ -1891,21 +2432,41 @@ function drawBullets() {
 
     bullets.forEach(bullet => {
 
-        ctx.fillStyle = "#ffe19a";
-
-        ctx.beginPath();
-
-        ctx.arc(
-            bullet.x,
-            bullet.y,
-            5,
-            0,
-            Math.PI * 2
+        const angle = Math.atan2(
+            bullet.directionY,
+            bullet.directionX
         );
 
-        ctx.fill();
+        ctx.save();
+
+        ctx.translate(bullet.x, bullet.y);
+
+        ctx.rotate(angle);
+
+        // BULLET BODY
+        ctx.fillStyle = "#ffe19a";
+
+        ctx.fillRect(
+            -8,
+            -2,
+            16,
+            4
+        );
+
+        // BULLET TIP
+        ctx.fillStyle = "#ffffff";
+
+        ctx.fillRect(
+            5,
+            -1,
+            4,
+            2
+        );
+
+        ctx.restore();
 
     });
+
 }
 
 // ============================================
@@ -1945,6 +2506,7 @@ function update(deltaTime) {
     updateHUD();
 
     checkGameOver();
+
 }
 
 // ============================================
@@ -1958,8 +2520,7 @@ function draw() {
 
     ctx.clearRect(0, 0, width, height);
 
-    // Scale the game map to fit the screen.
-
+    // SCALE THE GAME MAP TO FIT THE SCREEN
     const scale = Math.min(
         width / mapWidth,
         height / mapHeight
@@ -1980,6 +2541,7 @@ function draw() {
     drawPlayers();
 
     ctx.restore();
+
 }
 
 // ============================================
@@ -1999,6 +2561,7 @@ function gameLoop(timestamp) {
     draw();
 
     requestAnimationFrame(gameLoop);
+
 }
 
 requestAnimationFrame(gameLoop);
@@ -2012,9 +2575,17 @@ window.addEventListener("keydown", event => {
     keys[event.code] = true;
 
     if (
-        ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)
+        [
+            "ArrowUp",
+            "ArrowDown",
+            "ArrowLeft",
+            "ArrowRight",
+            "Space"
+        ].includes(event.code)
     ) {
+
         event.preventDefault();
+
     }
 
     if (event.repeat) return;
@@ -2024,8 +2595,7 @@ window.addEventListener("keydown", event => {
     const playerOne = players[0];
     const playerTwo = players[1];
 
-    // Player 1 controls
-
+    // PLAYER 1 CONTROLS
     if (event.code === "KeyT" && playerOne) {
         shoot(playerOne);
     }
@@ -2034,8 +2604,15 @@ window.addEventListener("keydown", event => {
         meleeAttack(playerOne);
     }
 
-    // Player 2 controls
+    if (event.code === "KeyU" && playerOne) {
+        reload(playerOne);
+    }
 
+    if (event.code === "KeyI" && playerOne) {
+        useHeal(playerOne);
+    }
+
+    // PLAYER 2 CONTROLS
     if (event.code === "Numpad1" && playerTwo) {
         shoot(playerTwo);
     }
@@ -2044,26 +2621,36 @@ window.addEventListener("keydown", event => {
         meleeAttack(playerTwo);
     }
 
-    // Reload
-
-    if (event.code === "KeyR") {
-        players.forEach(player => reload(player));
+    if (event.code === "Numpad4" && playerTwo) {
+        reload(playerTwo);
     }
 
-    // Healing
-
-    if (event.code === "KeyH") {
-        players.forEach(player => useHeal(player));
+    if (event.code === "Numpad5" && playerTwo) {
+        useHeal(playerTwo);
     }
 
-    // Inventory selection
+    // INVENTORY POP-UP
+    if (event.code === "KeyO" && playerOne) {
 
+        playerOne.inventoryOpen = !playerOne.inventoryOpen;
+
+    }
+
+    if (event.code === "Numpad6" && playerTwo) {
+
+        playerTwo.inventoryOpen = !playerTwo.inventoryOpen;
+
+    }
+
+    // INVENTORY SELECTION - PLAYER 1
     if (event.code.startsWith("Digit")) {
 
         const number = Number(event.code.replace("Digit", ""));
 
         if (number >= 1 && number <= 5 && playerOne) {
+
             selectSlot(playerOne, number);
+
         }
 
     }
@@ -2076,21 +2663,22 @@ window.addEventListener("keyup", event => {
 
 });
 
-
 // ============================================
 // BUTTON EVENTS
 // ============================================
-
-// Helper function for connecting buttons safely
 
 function bindButton(id, callback) {
 
     const button = document.getElementById(id);
 
     if (button) {
+
         button.addEventListener("click", callback);
+
     } else {
+
         console.warn("Button not found in HTML:", id);
+
     }
 
 }
@@ -2100,11 +2688,15 @@ function bindButton(id, callback) {
 // ============================================
 
 bindButton("start-btn", () => {
+
     showScreen("player-screen");
+
 });
 
 bindButton("menu-btn", () => {
+
     showScreen("settings-screen");
+
 });
 
 bindButton("exit-btn", () => {
@@ -2114,9 +2706,11 @@ bindButton("exit-btn", () => {
     );
 
     if (confirmExit) {
+
         window.close();
 
         alert("You may now close this browser tab.");
+
     }
 
 });
@@ -2128,17 +2722,11 @@ bindButton("exit-btn", () => {
 document.querySelectorAll(".back-menu").forEach(button => {
 
     button.addEventListener("click", () => {
+
         showScreen("menu-screen");
+
     });
 
-});
-
-bindButton("instructions-btn", () => {
-    showScreen("instructions-screen");
-});
-
-bindButton("settings-btn", () => {
-    showScreen("settings-screen");
 });
 
 // ============================================
@@ -2146,11 +2734,15 @@ bindButton("settings-btn", () => {
 // ============================================
 
 bindButton("solo-btn", () => {
+
     startGame("solo");
+
 });
 
 bindButton("coop-btn", () => {
+
     startGame("coop");
+
 });
 
 // ============================================
@@ -2162,6 +2754,8 @@ bindButton("pause-btn", () => {
     if (!gameRunning) return;
 
     gamePaused = true;
+
+    keys = {};
 
     showScreen("pause-screen");
 
@@ -2175,10 +2769,6 @@ bindButton("resume-btn", () => {
 
 });
 
-bindButton("pause-menu-btn", () => {
-    returnToMenu();
-});
-
 // ============================================
 // REST PERIOD
 // ============================================
@@ -2186,7 +2776,9 @@ bindButton("pause-menu-btn", () => {
 bindButton("rest-continue-btn", () => {
 
     if (currentNight < 5) {
+
         nextNight();
+
     }
 
 });
@@ -2196,7 +2788,9 @@ bindButton("rest-continue-btn", () => {
 // ============================================
 
 bindButton("win-menu-btn", () => {
+
     returnToMenu();
+
 });
 
 // ============================================
@@ -2204,11 +2798,15 @@ bindButton("win-menu-btn", () => {
 // ============================================
 
 bindButton("retry-btn", () => {
+
     retryNight();
+
 });
 
 bindButton("death-menu-btn", () => {
+
     returnToMenu();
+
 });
 
 // ============================================
@@ -2221,7 +2819,9 @@ const musicVolume = document.getElementById("music-volume");
 if (sfxVolume) {
 
     sfxVolume.addEventListener("input", event => {
+
         localStorage.setItem("gsm-sfx", event.target.value);
+
     });
 
 }
@@ -2229,11 +2829,12 @@ if (sfxVolume) {
 if (musicVolume) {
 
     musicVolume.addEventListener("input", event => {
+
         localStorage.setItem("gsm-music", event.target.value);
+
     });
 
 }
-
 
 // ============================================
 // INITIAL SETTINGS
@@ -2242,13 +2843,19 @@ if (musicVolume) {
 const playerTwoHUD = document.getElementById("player-two-hud");
 
 if (playerTwoHUD) {
+
     playerTwoHUD.style.display = "none";
+
 }
 
 if (localStorage.getItem("gsm-sfx") && sfxVolume) {
+
     sfxVolume.value = localStorage.getItem("gsm-sfx");
+
 }
 
 if (localStorage.getItem("gsm-music") && musicVolume) {
+
     musicVolume.value = localStorage.getItem("gsm-music");
+
 }
