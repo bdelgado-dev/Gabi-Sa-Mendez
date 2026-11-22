@@ -82,28 +82,28 @@ const itemTypes = {
         name: "Balisong",
         type: "melee",
         damage: 10,
-        icon: "🔪", asset: "balisong.ico"
+        asset: "balisong.ico"
     },
 
     palakol: {
         name: "Palakol",
         type: "melee",
         damage: 25,
-        icon: "🪓", asset: "palakol.ico"
+        asset: "palakol.ico"
     },
 
     itak: {
         name: "Itak",
         type: "melee",
         damage: 15,
-        icon: "🗡️", asset: "itak.ico"
+        asset: "itak.ico"
     },
 
     kawali: {
         name: "Kawali",
         type: "melee",
         damage: 12,
-        icon: "🍳", asset: "kawali.ico"
+        asset: "kawali.ico"
     },
 
     revolver: {
@@ -112,7 +112,7 @@ const itemTypes = {
         damage: 25,
         magazine: 6,
         reloadTime: 2.5,
-        icon: "🔫", asset: "revolver.ico"
+        asset: "revolver.ico"
     },
 
     ak47: {
@@ -121,42 +121,42 @@ const itemTypes = {
         damage: 50,
         magazine: 50,
         reloadTime: 2,
-        icon: "🎯", asset: "ak-47.ico"
+        asset: "ak-47.ico"
     },
 
     bandage: {
         name: "Bandage",
         type: "heal",
         amount: 20,
-        icon: "🩹", asset: "bandage.ico"
+        asset: "bandage.ico"
     },
 
     medkit: {
         name: "Medkit",
         type: "heal",
         amount: 60,
-        icon: "🧰", asset: "medkit.ico"
+        asset: "medkit.ico"
     },
 
     drink: {
         name: "Sports Drink",
         type: "energy",
         amount: 80,
-        icon: "🥤", asset: "sports-drink.ico"
+        asset: "sports-drink.ico"
     },
 
     armor: {
         name: "Armor",
         type: "armor",
         amount: 20,
-        icon: "🛡️", asset: "armor.ico"
+        asset: "armor.ico"
     },
 
     ammo: {
         name: "Bullets",
         type: "ammo",
         amount: 30,
-        icon: "📦", asset: "bullets.ico"
+        asset: "bullets.ico"
     },
 
     anting: {
@@ -164,7 +164,6 @@ const itemTypes = {
         type: "special",
         price: 80,
         description: "A mysterious protective charm worn around the neck. Activating it casts a force field around you, protecting you from incoming attacks for 5 seconds. Use only when necessary.",
-        icon: "📿",
         asset: "anting-anting.ico"
     },
 
@@ -173,7 +172,6 @@ const itemTypes = {
         type: "throwable",
         damage: 50,
         price: 60,
-        icon: "🧄",
         asset: "bawang.ico"
     },
 
@@ -182,7 +180,6 @@ const itemTypes = {
         type: "perk",
         perk: "ammo",
         price: 150,
-        icon: "♾️",
         asset: "unli-ammo.ico"
     },
 
@@ -191,7 +188,6 @@ const itemTypes = {
         type: "perk",
         perk: "energy",
         price: 120,
-        icon: "⚡",
         asset: "unli-energy.ico"
     },
 
@@ -217,6 +213,71 @@ Object.entries(itemTypes).forEach(([key, item]) => {
     itemImages[key] = image;
 
 });
+
+// ============================================
+// AUDIO SYSTEM
+// ============================================
+
+const audioFiles = {
+    gun: "assets/audio/gun-firing.mp3",
+    akReload: "assets/audio/ak-47-reload.mp3",
+    revolverReload: "assets/audio/revolver-reload.mp3",
+    hit: "assets/audio/bullet-hitting.mp3",
+    knife: "assets/audio/knife-whoosh.mp3",
+    music: "assets/audio/theme-song.mp3"
+};
+
+const audioPlayers = {};
+
+Object.entries(audioFiles).forEach(([key, path]) => {
+    const audio = new Audio(path);
+    audio.preload = "auto";
+
+    if (key === "music") {
+        audio.loop = true;
+    }
+
+    audioPlayers[key] = audio;
+});
+
+function getAudioVolume(type) {
+    const slider = document.getElementById(
+        type === "music" ? "music-volume" : "sfx-volume"
+    );
+
+    return slider ? Number(slider.value) / 100 : 0.5;
+}
+
+function playSound(name) {
+    const audio = audioPlayers[name];
+
+    if (!audio) return;
+
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = getAudioVolume("sfx");
+
+    audio.play().catch(() => {});
+}
+
+function startThemeMusic() {
+    const music = audioPlayers.music;
+
+    if (!music) return;
+
+    music.volume = getAudioVolume("music");
+
+    if (music.paused) {
+        music.currentTime = 0;
+        music.play().catch(() => {});
+    }
+}
+
+function updateAudioVolumes() {
+    if (audioPlayers.music) {
+        audioPlayers.music.volume = getAudioVolume("music");
+    }
+}
 
 // ============================================
 // GAME VARIABLES
@@ -544,9 +605,7 @@ function startGame(mode) {
     bullets = [];
     pickups = [];
     effects = [];
-
     players = [];
-
     keys = {};
 
     reviveProgress = 0;
@@ -561,11 +620,9 @@ function startGame(mode) {
     );
 
     if (mode === "coop") {
-
         players.push(
             createPlayer(2, mapWidth / 2 + 45, "#b47a48")
         );
-
     }
 
     createMap();
@@ -579,12 +636,12 @@ function startGame(mode) {
 
     openGame();
 
-    spawnInitialLoot();
+    startThemeMusic();
 
+    spawnInitialLoot();
     startNight(1);
 
     updateHUD();
-
 }
 
 // ============================================
@@ -645,15 +702,22 @@ function startNight(night) {
 
 function spawnInitialLoot() {
 
-    for (let i = 0; i < 24; i++) {
+    // Fewer items are available at the beginning.
+    for (let i = 0; i < 12; i++) {
 
-        const list = [
+        // Common items have a higher chance of appearing.
+        const commonItems = [
             "bandage",
             "bandage",
-            "medkit",
-            "drink",
-            "armor",
+            "bandage",
             "ammo",
+            "drink",
+            "armor"
+        ];
+
+        // Rare items have a much smaller chance.
+        const rareItems = [
+            "medkit",
             "palakol",
             "itak",
             "kawali",
@@ -663,7 +727,13 @@ function spawnInitialLoot() {
             "anting"
         ];
 
-        const type = list[Math.floor(Math.random() * list.length)];
+        const isRare = Math.random() < 0.18;
+
+        const list = isRare ? rareItems : commonItems;
+
+        const type = list[
+            Math.floor(Math.random() * list.length)
+        ];
 
         spawnPickup(type);
 
@@ -671,16 +741,22 @@ function spawnInitialLoot() {
 
 }
 
-function spawnPickup(type) {
+function spawnPickup(type, x = null, y = null, amount = 0) {
 
-    let x = 50 + Math.random() * (mapWidth - 100);
-    let y = 60 + Math.random() * (mapHeight - 120);
+    const pickupX = x === null
+        ? 50 + Math.random() * (mapWidth - 100)
+        : x;
+
+    const pickupY = y === null
+        ? 60 + Math.random() * (mapHeight - 120)
+        : y;
 
     pickups.push({
         type: type,
-        x: x,
-        y: y,
-        size: 16
+        x: pickupX,
+        y: pickupY,
+        size: 16,
+        amount: amount
     });
 
 }
@@ -744,96 +820,6 @@ function spawnEnemy() {
     });
 
 }
-
-// ============================================
-// PLAYER MOVEMENT
-// ============================================
-
-function movePlayer(player, deltaTime) {
-
-    if (player.downed) return;
-
-    player.forceFieldTime = Math.max(0, player.forceFieldTime - deltaTime);
-    player.unlimitedAmmoTime = Math.max(0, player.unlimitedAmmoTime - deltaTime);
-    player.unlimitedEnergyTime = Math.max(0, player.unlimitedEnergyTime - deltaTime);
-    player.meleeAnimation = Math.max(0, player.meleeAnimation - deltaTime);
-    player.throwAnimation = Math.max(0, player.throwAnimation - deltaTime);
-    player.muzzleFlash = Math.max(0, player.muzzleFlash - deltaTime);
-    player.garlicCooldown = Math.max(0, player.garlicCooldown - deltaTime);
-
-    let dx = 0;
-    let dy = 0;
-
-    // PLAYER 1 MOVEMENT
-    if (player.id === 1) {
-
-        if (keys["KeyA"]) dx -= 1;
-        if (keys["KeyD"]) dx += 1;
-        if (keys["KeyW"]) dy -= 1;
-        if (keys["KeyS"]) dy += 1;
-
-    }
-
-    // PLAYER 2 MOVEMENT
-    else {
-
-        if (keys["ArrowLeft"]) dx -= 1;
-        if (keys["ArrowRight"]) dx += 1;
-        if (keys["ArrowUp"]) dy -= 1;
-        if (keys["ArrowDown"]) dy += 1;
-
-    }
-
-    // UPDATE FACING DIRECTION
-    if (dx !== 0 || dy !== 0) {
-
-        const length = Math.sqrt(dx * dx + dy * dy);
-
-        player.facingX = dx / length;
-        player.facingY = dy / length;
-
-        if (dx !== 0) {
-            player.facing = dx > 0 ? 1 : -1;
-        }
-
-        // NORMALIZE MOVEMENT
-        dx /= length;
-        dy /= length;
-
-        const movementSpeed = (player.energy <= 0 && player.unlimitedEnergyTime <= 0)
-            ? player.speed * 0.55
-            : player.speed;
-
-        player.x += dx * movementSpeed * deltaTime;
-        player.y += dy * movementSpeed * deltaTime;
-
-        if (player.unlimitedEnergyTime <= 0) {
-            player.energy = Math.max(0, player.energy - 5 * deltaTime);
-        } else {
-            player.energy = player.maxEnergy;
-        }
-
-    }
-
-    // KEEP PLAYER INSIDE THE MAP
-    player.x = Math.max(20, Math.min(mapWidth - 20, player.x));
-    player.y = Math.max(20, Math.min(mapHeight - 20, player.y));
-
-    player.attackCooldown = Math.max(0, player.attackCooldown - deltaTime);
-    player.meleeCooldown = Math.max(0, player.meleeCooldown - deltaTime);
-
-    if (player.reloading) {
-
-        player.reloadTime -= deltaTime;
-
-        if (player.reloadTime <= 0) {
-            finishReload(player);
-        }
-
-    }
-
-}
-
 
 // ============================================
 // PLAYER MOVEMENT
@@ -954,6 +940,39 @@ function movePlayer(player, deltaTime) {
         player.meleeCooldown - deltaTime
     );
 
+    // RELOAD COUNTDOWN
+    if (player.reloading) {
+
+        player.reloadTime -= deltaTime;
+
+            if (player.reloadTime <= 0) {
+
+        const weapon = itemTypes[player.weapon];
+
+        if (weapon && weapon.type === "gun") {
+
+            const needed =
+                weapon.magazine - player.magazine[player.weapon];
+
+            const loaded = Math.min(
+                needed,
+                player.reserveAmmo
+            );
+
+            player.magazine[player.weapon] += loaded;
+            player.reserveAmmo -= loaded;
+
+        }
+
+        player.reloading = false;
+        player.reloadTime = 0;
+
+        showNotification("RELOAD COMPLETE!");
+
+        updateHUD();
+
+    }
+
 }
 
 // ============================================
@@ -988,6 +1007,7 @@ function shoot(player) {
 
     player.muzzleFlash = 0.09;
     player.stats.shotsFired++;
+    playSound("gun");
 
     // GET THE PLAYER'S FACING DIRECTION
     const directionX = player.facingX;
@@ -1093,8 +1113,9 @@ function meleeAttack(player) {
 
     if (player.meleeCooldown > 0) return;
 
-    player.meleeCooldown = 0.55;
+    player.meleeCooldown = 0.45;
     player.meleeAnimation = 0.24;
+    playSound("knife");
 
     const weapon = itemTypes[player.weapon];
 
@@ -1128,7 +1149,7 @@ function meleeAttack(player) {
     });
 
     if (target) {
-
+        playSound("hit");
         damageEnemy(
             target,
             weapon.damage,
@@ -1176,16 +1197,19 @@ function damageEnemy(enemy, damage, playerId, attackType) {
 
         enemies = enemies.filter(e => e.alive);
 
-        // Every defeated creature may leave coins for the next-night shop.
-        const coinDrop = 5 + Math.floor(Math.random() * 11);
+        // Only some defeated creatures leave gold.
+        if (Math.random() < 0.35) {
 
-        pickups.push({
-            type: "gold",
-            x: enemy.x,
-            y: enemy.y,
-            size: 13,
-            amount: coinDrop
-        });
+            const coinDrop = 3 + Math.floor(Math.random() * 8);
+
+                spawnPickup(
+                    "gold",
+                    enemy.x,
+                    enemy.y,
+                    coinDrop
+            );
+
+        }
 
         document.getElementById("kill-count").textContent = totalKills;
 
@@ -1506,56 +1530,32 @@ function checkGameOver() {
 
 function reload(player) {
 
-    if (player.downed) return;
+    if (player.downed || player.reloading) return;
 
     const weapon = itemTypes[player.weapon];
 
     if (!weapon || weapon.type !== "gun") return;
 
-    if (player.reloading) return;
-
     if (player.magazine[player.weapon] >= weapon.magazine) return;
 
     if (player.reserveAmmo <= 0) {
+
         showNotification("NO EXTRA BULLETS!");
+
         return;
+
     }
 
     player.reloading = true;
     player.reloadTime = weapon.reloadTime;
 
+    playSound(
+        player.weapon === "ak47"
+            ? "akReload"
+            : "revolverReload"
+    );
+
     showNotification("RELOADING " + weapon.name + "...");
-
-    const timer = setTimeout(() => {
-
-        if (!players.includes(player)) return;
-
-        if (player.downed) {
-
-            player.reloading = false;
-            player.reloadTime = 0;
-
-            return;
-
-        }
-
-        const needed = weapon.magazine - player.magazine[player.weapon];
-
-        const loaded = Math.min(needed, player.reserveAmmo);
-
-        player.magazine[player.weapon] += loaded;
-        player.reserveAmmo -= loaded;
-
-        player.reloading = false;
-        player.reloadTime = 0;
-
-        showNotification("RELOAD COMPLETE!");
-
-        updateHUD();
-
-    }, weapon.reloadTime * 1000);
-
-    reloadTimers.push(timer);
 
 }
 
@@ -3076,37 +3076,91 @@ function drawPickups() {
 
         const item = itemTypes[pickup.type];
 
-        ctx.fillStyle = "#d5ae61";
+        if (!item) return;
 
-        ctx.fillRect(
-            pickup.x - 12,
-            pickup.y - 12,
-            24,
-            24
+        const isGold = pickup.type === "gold";
+
+        // WARM GLOW
+        const glowRadius = isGold ? 25 : 23;
+
+        const glow = ctx.createRadialGradient(
+            pickup.x,
+            pickup.y,
+            2,
+            pickup.x,
+            pickup.y,
+            glowRadius
         );
 
+        if (isGold) {
+
+            glow.addColorStop(0, "rgba(249, 182, 66, 0.65)");
+            glow.addColorStop(0.45, "rgba(226, 75, 22, 0.22)");
+            glow.addColorStop(1, "rgba(226, 75, 22, 0)");
+
+        } else {
+
+            glow.addColorStop(0, "rgba(249, 182, 66, 0.48)");
+            glow.addColorStop(0.5, "rgba(226, 75, 22, 0.16)");
+            glow.addColorStop(1, "rgba(226, 75, 22, 0)");
+
+        }
+
+        ctx.fillStyle = glow;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            pickup.x,
+            pickup.y,
+            glowRadius,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+        // GOLD COIN
+        if (isGold) {
+
+            ctx.font = "19px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            ctx.fillText(
+                "🪙",
+                pickup.x,
+                pickup.y
+            );
+
+            return;
+
+        }
+
+        // ITEM ICON
         const iconImage = itemImages[pickup.type];
 
         if (iconImage && iconImage.complete && iconImage.naturalWidth) {
 
             ctx.drawImage(
                 iconImage,
-                pickup.x - 10,
-                pickup.y - 10,
-                20,
-                20
+                pickup.x - 12,
+                pickup.y - 12,
+                24,
+                24
             );
 
         } else {
 
-            ctx.fillStyle = "#161616";
-            ctx.font = "15px Arial";
+            ctx.fillStyle = "#F9B642";
+            ctx.font = "17px Arial";
             ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
 
             ctx.fillText(
                 item.icon || "?",
                 pickup.x,
-                pickup.y + 5
+                pickup.y
             );
 
         }
@@ -3593,10 +3647,7 @@ if (sfxVolume) {
 
     sfxVolume.addEventListener("input", event => {
 
-        localStorage.setItem(
-            "gsm-sfx",
-            event.target.value
-        );
+        localStorage.setItem("gsm-sfx", event.target.value);
 
     });
 
@@ -3606,10 +3657,9 @@ if (musicVolume) {
 
     musicVolume.addEventListener("input", event => {
 
-        localStorage.setItem(
-            "gsm-music",
-            event.target.value
-        );
+        localStorage.setItem("gsm-music", event.target.value);
+
+        updateAudioVolumes();
 
     });
 
@@ -3621,14 +3671,15 @@ if (musicVolume) {
 
 const playerTwoHUD = document.getElementById("player-two-hud");
 
-if (playerTwoHUD) {
-    playerTwoHUD.style.display = "none";
-}
+    if (playerTwoHUD) {
+        playerTwoHUD.style.display = "none";
+    }
 
-if (localStorage.getItem("gsm-sfx") && sfxVolume) {
-    sfxVolume.value = localStorage.getItem("gsm-sfx");
-}
+    if (localStorage.getItem("gsm-sfx") && sfxVolume) {
+        sfxVolume.value = localStorage.getItem("gsm-sfx");
+    }
 
-if (localStorage.getItem("gsm-music") && musicVolume) {
-    musicVolume.value = localStorage.getItem("gsm-music");
+    if (localStorage.getItem("gsm-music") && musicVolume) {
+        musicVolume.value = localStorage.getItem("gsm-music");
+    }
 }
