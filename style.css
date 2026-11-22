@@ -205,22 +205,31 @@ h3 {
 }
 
 /* ============================================
-   GAME SCREEN
+   FULLSCREEN GAME MAP
    ============================================ */
 
 #game-screen {
     position: absolute;
     inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
     z-index: 2;
-    background: var(--blue);
+    background: #100406;
 }
 
 #game-canvas {
     position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    top: 0;
+    left: 0;
+
+    width: 100% !important;
+    height: 100% !important;
+
     display: block;
+    z-index: 1;
+
+    object-fit: fill;
 }
 
 /* ============================================
@@ -229,7 +238,7 @@ h3 {
 
 #top-hud {
     position: absolute;
-    z-index: 3;
+    z-index: 6;
     top: 12px;
     left: 50%;
     transform: translateX(-50%);
@@ -278,175 +287,207 @@ h3 {
 }
 
 /* ============================================
-   COMPACT PLAYER HUD
+   PLAYER HUD
    ============================================ */
 
 #player-hud {
-    z-index: 6;
-    left: 50%;
-    right: auto;
-    bottom: 12px;
-    transform: translateX(-50%);
+    position: absolute !important;
 
-    width: min(760px, calc(100% - 24px));
+    left: 50% !important;
+    right: auto !important;
+    bottom: 15px !important;
 
-    justify-content: center;
-    align-items: stretch;
-    gap: 8px;
+    transform: translateX(-50%) !important;
 
-    padding: 7px;
-
-    background: rgba(16, 4, 6, 0.94);
-    border: 1px solid var(--border);
-    box-shadow: 0 5px 20px #0009;
-}
-
-.player-status {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-
-    padding: 7px;
-
-    background: transparent;
-    border: 0;
-}
-
-.player-status h3 {
-    margin-bottom: 5px;
-}
-
-.status-row {
-    margin: 5px 0;
-}
-
-.inventory-slots {
-    margin-top: 7px;
-    gap: 4px;
-}
-
-.inventory-slot {
-    min-height: 42px;
-}
-
-.backpack-label {
-    margin-top: 7px;
-}
-
-.backpack-slots {
-    max-height: 100px;
-}
-
-/* Keep the game world behind the HUD. */
-#game-canvas {
-    z-index: 1;
-}
-
-#top-hud {
-    z-index: 6;
-}
-
-#game-message {
-    z-index: 7;
-}
-
-#notification {
-    z-index: 8;
-}
-
-@media (max-width: 700px) {
-
-    #player-hud {
-        width: calc(100% - 10px);
-        bottom: 5px;
-        padding: 4px;
-        gap: 3px;
-    }
-
-    .player-status {
-        padding: 5px 3px;
-    }
-
-    .inventory-slot {
-        min-height: 34px;
-    }
-
-}
-
-/* ============================================
-   INVENTORY SLOTS
-   ============================================ */
-
-.inventory-slots {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 5px;
-    margin-top: 10px;
-}
-
-.inventory-slot {
-    min-height: 48px;
-    padding: 5px 2px;
-
-    background: var(--blue);
-    border: 1px solid rgba(249, 182, 66, 0.3);
-
-    text-align: center;
-    font-size: 8px;
-    overflow-wrap: anywhere;
-    color: white;
+    width: auto !important;
+    max-width: 95vw;
 
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+
+    gap: 6px;
+    padding: 0;
+
+    background: transparent;
+    border: none;
+    box-shadow: none;
+
+    z-index: 20;
+
+    pointer-events: none;
+}
+
+.player-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    width: auto;
+    min-width: 0;
+    padding: 0;
+
+    background: transparent;
+    border: none;
+
+    pointer-events: auto;
+}
+
+.player-status h3,
+.player-status .status-row {
+    display: none !important;
+}
+
+/* ============================================
+   MINECRAFT-STYLE QUICK HOTBAR
+   ============================================ */
+
+.inventory-slots {
+    position: relative;
+
+    display: grid !important;
+    grid-template-columns: repeat(5, 64px);
+
+    width: max-content;
+    gap: 5px;
+
+    margin: 0;
+    padding: 7px;
+
+    background: rgba(16, 4, 6, 0.96);
+
+    border: 2px solid #65513a;
+    border-radius: 3px;
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.85),
+        inset 0 0 8px rgba(0, 0, 0, 0.5);
+
+    pointer-events: auto;
+}
+
+/* INDIVIDUAL SLOTS */
+
+.inventory-slot {
+    position: relative;
+
+    width: 64px;
+    height: 64px;
+    min-height: 64px;
+
+    padding: 4px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
     gap: 3px;
+
+    background: #242923;
+
+    border: 2px solid #625b4d;
+    border-radius: 2px;
+
+    color: white;
+    font-size: 9px;
+
+    box-shadow:
+        inset 2px 2px 3px rgba(255, 255, 255, 0.06),
+        inset -2px -2px 3px rgba(0, 0, 0, 0.5);
+
+    transition: .15s;
 }
 
 .inventory-slot:hover {
-    background: var(--burgundy);
+    background: #493b2b;
     border-color: var(--orange);
     color: white;
 }
 
 .inventory-slot.selected {
-    border: 2px solid var(--gold);
-    background: rgba(226, 75, 22, 0.35);
-    box-shadow: 0 0 10px rgba(249, 182, 66, 0.2);
+    background: rgba(226, 75, 22, 0.25);
+
+    border: 3px solid var(--gold);
+
+    box-shadow:
+        0 0 12px rgba(249, 182, 66, 0.5),
+        inset 0 0 8px rgba(249, 182, 66, 0.15);
 }
 
+/* ITEM ICONS */
+
 .inventory-slot img {
-    width: 25px;
-    height: 25px;
+    width: 34px;
+    height: 34px;
+
     object-fit: contain;
     image-rendering: pixelated;
 }
 
+/* ITEM NAMES */
+
 .inventory-slot small {
+    display: block;
+
+    max-width: 100%;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
     font-size: 8px;
-    color: var(--gold);
+    color: #e4d2ad;
 }
+
+/* EMPTY SLOTS */
+
+.inventory-slot:empty {
+    background: #171b18;
+}
+
+/* ============================================
+   BACKPACK
+   ============================================ */
 
 .backpack-label {
     display: none;
+
     justify-content: space-between;
-    color: var(--orange);
-    font-size: 9px;
-    letter-spacing: 2px;
-    margin-top: 12px;
+
+    width: 100%;
+
+    color: var(--gold);
+    font-size: 10px;
+    letter-spacing: 1px;
+
+    margin-top: 5px;
 }
 
 .backpack-slots {
     display: none;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
-    margin-top: 6px;
-    max-height: 120px;
-    overflow: auto;
+
+    grid-template-columns: repeat(5, 64px);
+
+    gap: 5px;
+
+    max-height: 180px;
+    overflow-y: auto;
+
+    margin-top: 5px;
+    padding: 7px;
+
+    background: rgba(16, 4, 6, 0.96);
+    border: 2px solid #65513a;
+
+    pointer-events: auto;
 }
 
 .backpack-slots .inventory-slot {
-    min-height: 42px;
+    width: 64px;
+    height: 58px;
+    min-height: 58px;
 }
 
 /* ============================================
@@ -455,7 +496,7 @@ h3 {
 
 #game-message {
     position: absolute;
-    z-index: 4;
+    z-index: 7;
     top: 42%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -471,7 +512,7 @@ h3 {
 
 #notification {
     position: absolute;
-    z-index: 5;
+    z-index: 8;
     top: 80px;
     left: 50%;
     transform: translateX(-50%);
@@ -644,33 +685,39 @@ h3 {
     }
 
     #player-hud {
-        left: 5px;
-        right: 5px;
-        bottom: 5px;
-        gap: 5px;
+        bottom: 8px !important;
+        gap: 4px;
     }
 
-    .player-status {
-        width: 50%;
-        padding: 7px;
-    }
-
-    .player-status h3 {
-        font-size: 10px;
+    .inventory-slots {
+        grid-template-columns: repeat(5, 52px);
+        gap: 3px;
+        padding: 5px;
     }
 
     .inventory-slot {
-        min-height: 38px;
-        font-size: 6px;
+        width: 52px;
+        height: 54px;
+        min-height: 54px;
     }
 
     .inventory-slot img {
-        width: 20px;
-        height: 20px;
+        width: 27px;
+        height: 27px;
     }
 
     .inventory-slot small {
-        font-size: 6px;
+        font-size: 7px;
+    }
+
+    .backpack-slots {
+        grid-template-columns: repeat(5, 52px);
+    }
+
+    .backpack-slots .inventory-slot {
+        width: 52px;
+        height: 48px;
+        min-height: 48px;
     }
 
     #final-stats {
@@ -683,164 +730,6 @@ h3 {
 
     .shop-item button {
         padding: 6px;
-    }
-
-}
-
-/* ============================================
-   MINECRAFT-STYLE BOTTOM INVENTORY HOTBAR
-   ============================================ */
-
-/* QUICK INVENTORY CONTAINER */
-.inventory-slots {
-    position: fixed !important;
-
-    left: 50% !important;
-    bottom: 18px !important;
-
-    transform: translateX(-50%) !important;
-
-    display: grid !important;
-    grid-template-columns: repeat(5, 64px);
-
-    width: max-content;
-    gap: 5px;
-
-    padding: 7px;
-
-    background: rgba(16, 4, 6, 0.94);
-    border: 2px solid rgba(249, 182, 66, 0.65);
-
-    box-shadow:
-        0 4px 15px rgba(0, 0, 0, 0.8),
-        0 0 12px rgba(226, 75, 22, 0.15);
-
-    z-index: 20 !important;
-
-    pointer-events: auto;
-}
-
-/* PLAYER 1 HOTBAR */
-#p1-slots {
-    bottom: 18px !important;
-}
-
-/* PLAYER 2 HOTBAR */
-#p2-slots {
-    bottom: 88px !important;
-}
-
-/* INDIVIDUAL RECTANGULAR SLOTS */
-.inventory-slot {
-    position: relative;
-
-    width: 64px;
-    height: 60px;
-    min-height: 60px;
-
-    padding: 5px;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-
-    background: rgba(35, 39, 34, 0.96);
-
-    border: 2px solid #655b48;
-    border-radius: 2px;
-
-    color: white;
-    font-size: 9px;
-
-    box-shadow:
-        inset 2px 2px 3px rgba(255, 255, 255, 0.05),
-        inset -2px -2px 3px rgba(0, 0, 0, 0.5);
-
-    transition: border-color 0.15s, background 0.15s;
-}
-
-/* ITEM ICONS */
-.inventory-slot img {
-    width: 32px;
-    height: 32px;
-
-    object-fit: contain;
-    image-rendering: pixelated;
-}
-
-/* ITEM NAMES */
-.inventory-slot small {
-    display: block;
-
-    max-width: 100%;
-
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    font-size: 8px;
-    color: #d8c8a4;
-}
-
-/* EMPTY SLOTS */
-.inventory-slot:empty {
-    background: rgba(20, 24, 22, 0.95);
-}
-
-/* HOVERED SLOT */
-.inventory-slot:hover {
-    background: #493b2b;
-    border-color: var(--orange);
-}
-
-/* SELECTED SLOT */
-.inventory-slot.selected {
-    background: rgba(226, 75, 22, 0.25);
-
-    border: 3px solid var(--gold);
-
-    box-shadow:
-        0 0 10px rgba(249, 182, 66, 0.45),
-        inset 0 0 8px rgba(249, 182, 66, 0.12);
-}
-
-/* HIDE OLD BACKPACK POSITIONING */
-.backpack-label,
-.backpack-slots {
-    z-index: 10;
-}
-
-/* RESPONSIVE HOTBAR */
-@media (max-width: 700px) {
-
-    .inventory-slots {
-        grid-template-columns: repeat(5, 52px);
-
-        gap: 3px;
-        padding: 5px;
-
-        bottom: 10px !important;
-    }
-
-    #p2-slots {
-        bottom: 76px !important;
-    }
-
-    .inventory-slot {
-        width: 52px;
-        height: 52px;
-        min-height: 52px;
-    }
-
-    .inventory-slot img {
-        width: 26px;
-        height: 26px;
-    }
-
-    .inventory-slot small {
-        font-size: 7px;
     }
 
 }
