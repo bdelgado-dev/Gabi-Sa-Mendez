@@ -940,40 +940,43 @@ function movePlayer(player, deltaTime) {
         player.meleeCooldown - deltaTime
     );
 
-    // RELOAD COUNTDOWN
+        // RELOAD COUNTDOWN
     if (player.reloading) {
 
         player.reloadTime -= deltaTime;
 
-            if (player.reloadTime <= 0) {
+        if (player.reloadTime <= 0) {
 
-        const weapon = itemTypes[player.weapon];
+            const weapon = itemTypes[player.weapon];
 
-        if (weapon && weapon.type === "gun") {
+            if (weapon && weapon.type === "gun") {
 
-            const needed =
-                weapon.magazine - player.magazine[player.weapon];
+                const needed =
+                    weapon.magazine - player.magazine[player.weapon];
 
-            const loaded = Math.min(
-                needed,
-                player.reserveAmmo
-            );
+                const loaded = Math.min(
+                    needed,
+                    player.reserveAmmo
+                );
 
-            player.magazine[player.weapon] += loaded;
-            player.reserveAmmo -= loaded;
+                player.magazine[player.weapon] += loaded;
+                player.reserveAmmo -= loaded;
+
+            }
+
+            player.reloading = false;
+            player.reloadTime = 0;
+
+            showNotification("RELOAD COMPLETE!");
+
+            updateHUD();
 
         }
-
-        player.reloading = false;
-        player.reloadTime = 0;
-
-        showNotification("RELOAD COMPLETE!");
-
-        updateHUD();
 
     }
 
 }
+
 
 // ============================================
 // PLAYER SHOOTING
@@ -3679,7 +3682,6 @@ const playerTwoHUD = document.getElementById("player-two-hud");
         sfxVolume.value = localStorage.getItem("gsm-sfx");
     }
 
-    if (localStorage.getItem("gsm-music") && musicVolume) {
+        if (localStorage.getItem("gsm-music") && musicVolume) {
         musicVolume.value = localStorage.getItem("gsm-music");
     }
-}
