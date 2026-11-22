@@ -686,3 +686,161 @@ h3 {
     }
 
 }
+
+/* ============================================
+   MINECRAFT-STYLE BOTTOM INVENTORY HOTBAR
+   ============================================ */
+
+/* QUICK INVENTORY CONTAINER */
+.inventory-slots {
+    position: fixed !important;
+
+    left: 50% !important;
+    bottom: 18px !important;
+
+    transform: translateX(-50%) !important;
+
+    display: grid !important;
+    grid-template-columns: repeat(5, 64px);
+
+    width: max-content;
+    gap: 5px;
+
+    padding: 7px;
+
+    background: rgba(16, 4, 6, 0.94);
+    border: 2px solid rgba(249, 182, 66, 0.65);
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.8),
+        0 0 12px rgba(226, 75, 22, 0.15);
+
+    z-index: 20 !important;
+
+    pointer-events: auto;
+}
+
+/* PLAYER 1 HOTBAR */
+#p1-slots {
+    bottom: 18px !important;
+}
+
+/* PLAYER 2 HOTBAR */
+#p2-slots {
+    bottom: 88px !important;
+}
+
+/* INDIVIDUAL RECTANGULAR SLOTS */
+.inventory-slot {
+    position: relative;
+
+    width: 64px;
+    height: 60px;
+    min-height: 60px;
+
+    padding: 5px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+
+    background: rgba(35, 39, 34, 0.96);
+
+    border: 2px solid #655b48;
+    border-radius: 2px;
+
+    color: white;
+    font-size: 9px;
+
+    box-shadow:
+        inset 2px 2px 3px rgba(255, 255, 255, 0.05),
+        inset -2px -2px 3px rgba(0, 0, 0, 0.5);
+
+    transition: border-color 0.15s, background 0.15s;
+}
+
+/* ITEM ICONS */
+.inventory-slot img {
+    width: 32px;
+    height: 32px;
+
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* ITEM NAMES */
+.inventory-slot small {
+    display: block;
+
+    max-width: 100%;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-size: 8px;
+    color: #d8c8a4;
+}
+
+/* EMPTY SLOTS */
+.inventory-slot:empty {
+    background: rgba(20, 24, 22, 0.95);
+}
+
+/* HOVERED SLOT */
+.inventory-slot:hover {
+    background: #493b2b;
+    border-color: var(--orange);
+}
+
+/* SELECTED SLOT */
+.inventory-slot.selected {
+    background: rgba(226, 75, 22, 0.25);
+
+    border: 3px solid var(--gold);
+
+    box-shadow:
+        0 0 10px rgba(249, 182, 66, 0.45),
+        inset 0 0 8px rgba(249, 182, 66, 0.12);
+}
+
+/* HIDE OLD BACKPACK POSITIONING */
+.backpack-label,
+.backpack-slots {
+    z-index: 10;
+}
+
+/* RESPONSIVE HOTBAR */
+@media (max-width: 700px) {
+
+    .inventory-slots {
+        grid-template-columns: repeat(5, 52px);
+
+        gap: 3px;
+        padding: 5px;
+
+        bottom: 10px !important;
+    }
+
+    #p2-slots {
+        bottom: 76px !important;
+    }
+
+    .inventory-slot {
+        width: 52px;
+        height: 52px;
+        min-height: 52px;
+    }
+
+    .inventory-slot img {
+        width: 26px;
+        height: 26px;
+    }
+
+    .inventory-slot small {
+        font-size: 7px;
+    }
+
+}
